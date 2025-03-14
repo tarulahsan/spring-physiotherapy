@@ -1,0 +1,55 @@
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables */
+:root {
+  --primary-color: #4F46E5;
+  --secondary-color: #10B981;
+  --accent-color: #8B5CF6;
+  --background-color: #F9FAFB;
+  --text-color: #1F2937;
+  --border-color: #E5E7EB;
+}
+
+/* Base styles */
+@layer base {
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+}
+
+/* Component styles */
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white px-4 py-2 rounded-lg transition-opacity hover:opacity-90;
+  }
+
+  .btn-secondary:hover {
+    opacity: 0.9;
+  }
+
+  .input-field {
+    @apply px-3 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-white p-6 rounded-lg border border-border shadow-sm;
+  }
+
+  .gradient-text {
+    background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, var(--primary-color), var(--secondary-color), var(--accent-color));
+  }
+}
