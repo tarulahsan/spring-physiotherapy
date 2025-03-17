@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && npx vite build"
+  command = "npm ci && npm install vite@5.0.8 && npx vite build"
   publish = "dist"
   base = "/"
 
@@ -10,7 +10,7 @@
   environment = { NODE_ENV = "production" }
 
 [context.staging]
-  command = "npm ci && npx vite build --mode staging"
+  command = "npm ci && npm install vite@5.0.8 && npx vite build --mode staging"
   environment = { NODE_ENV = "staging" }
 
 [[redirects]]
