@@ -499,11 +499,27 @@ export default function PatientManagement() {
                   <FaUser className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
                 </div>
 
-                {/* Mobile Number */}
+                {/* Registration Date */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaCalendarAlt className="text-blue-500 mr-2" />
+                    Registration Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.registration_date}
+                    onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-blue-50/30 hover:bg-blue-50/50"
+                    required
+                  />
+                  <FaCalendarAlt className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
+                </div>
+
+                {/* Phone */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
                     <FaPhone className="text-green-500 mr-2" />
-                    Mobile Number *
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -533,11 +549,6 @@ export default function PatientManagement() {
                     <option value="Other">Other</option>
                   </select>
                   <FaVenusMars className="absolute left-4 top-[43px] text-pink-400 group-hover:text-pink-500 transition-colors" />
-                  <div className="absolute right-4 top-[43px] pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
 
                 {/* Email */}
@@ -556,6 +567,27 @@ export default function PatientManagement() {
                   <FaEnvelope className="absolute left-4 top-[43px] text-indigo-400 group-hover:text-indigo-500 transition-colors" />
                 </div>
 
+                {/* Doctor */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaUserMd className="text-teal-500 mr-2" />
+                    Assigned Doctor
+                  </label>
+                  <select
+                    value={formData.doctor_id}
+                    onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50 appearance-none cursor-pointer"
+                  >
+                    <option value="">Select Doctor</option>
+                    {doctors.map(doctor => (
+                      <option key={doctor.id} value={doctor.id}>
+                        {doctor.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FaUserMd className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
+                </div>
+
                 {/* Address */}
                 <div className="md:col-span-2 relative">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -566,26 +598,10 @@ export default function PatientManagement() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all bg-red-50/30 hover:bg-red-50/50"
-                    maxLength={300}
-                    rows={3}
+                    rows={2}
+                    placeholder="Enter address"
                   />
                   <FaMapMarkerAlt className="absolute left-4 top-[43px] text-red-400 group-hover:text-red-500 transition-colors" />
-                </div>
-
-                {/* Registration Date */}
-                <div className="relative group">
-                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
-                    <FaCalendarAlt className="text-blue-500 mr-2" />
-                    Registration Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.registration_date}
-                    onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-blue-50/30 hover:bg-blue-50/50"
-                    required
-                  />
-                  <FaCalendarAlt className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
                 </div>
 
                 {/* Medical History */}
@@ -598,7 +614,8 @@ export default function PatientManagement() {
                     value={formData.medical_history}
                     onChange={(e) => setFormData({ ...formData, medical_history: e.target.value })}
                     className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50"
-                    rows={4}
+                    rows={3}
+                    placeholder="Enter medical history"
                   />
                   <FaNotesMedical className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
                 </div>
@@ -671,32 +688,6 @@ export default function PatientManagement() {
                         </CardBody>
                       </Card>
                     ))}
-                  </div>
-                </div>
-
-                {/* Doctor */}
-                <div className="relative group">
-                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
-                    <FaUserMd className="text-teal-500 mr-2" />
-                    Assigned Doctor
-                  </label>
-                  <select
-                    value={formData.doctor_id}
-                    onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50 appearance-none cursor-pointer"
-                  >
-                    <option value="">Select Doctor</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name}
-                      </option>
-                    ))}
-                  </select>
-                  <FaUserMd className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
-                  <div className="absolute right-4 top-[43px] pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
                   </div>
                 </div>
 
