@@ -182,18 +182,30 @@ const Invoice = () => {
   const handleTherapySelection = (therapy) => {
     if (!therapy) return;
 
-    const newTherapy = {
-      therapy_type_id: therapy.id,
-      therapy_name: therapy.name,
-      quantity: 1,
-      days: 1,
-      unit_price: therapy.price,
-      discount_amount: 0,
-      total_amount: therapy.price
-    };
+    // Check if therapy is already selected
+    const existingIndex = selectedTherapies.findIndex(t => t.therapy_type_id === therapy.id);
+    
+    if (existingIndex !== -1) {
+      // If therapy is already selected, remove it
+      const updatedTherapies = selectedTherapies.filter((_, index) => index !== existingIndex);
+      setSelectedTherapies(updatedTherapies);
+      calculateTotals(updatedTherapies);
+    } else {
+      // If therapy is not selected, add it
+      const newTherapy = {
+        therapy_type_id: therapy.id,
+        therapy_name: therapy.name,
+        quantity: 1,
+        days: 1,
+        unit_price: therapy.price,
+        discount_amount: 0,
+        total_amount: therapy.price
+      };
 
-    setSelectedTherapies(prev => [...prev, newTherapy]);
-    calculateTotals([...selectedTherapies, newTherapy]);
+      const updatedTherapies = [...selectedTherapies, newTherapy];
+      setSelectedTherapies(updatedTherapies);
+      calculateTotals(updatedTherapies);
+    }
   };
 
   // Handle therapy removal
