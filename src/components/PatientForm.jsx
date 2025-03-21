@@ -11,6 +11,8 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
     address: '',
     medical_history: '',
     remarks: '',
+    registration_date: new Date().toISOString().split('T')[0],
+    diagnosis: '',
     ...initialData
   });
 
@@ -29,16 +31,30 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Name *</label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Registration Date *</label>
+          <input
+            type="date"
+            name="registration_date"
+            value={formData.registration_date}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -90,6 +106,7 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
           value={formData.email}
           onChange={handleChange}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Optional: Enter patient email"
         />
       </div>
 
@@ -101,6 +118,7 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
           onChange={handleChange}
           rows="2"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Optional: Enter patient address"
         />
       </div>
 
@@ -116,6 +134,18 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-700">Diagnosis</label>
+        <textarea
+          name="diagnosis"
+          value={formData.diagnosis}
+          onChange={handleChange}
+          rows="3"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Optional: Enter patient diagnosis"
+        />
+      </div>
+
+      <div>
         <label className="block text-sm font-medium text-gray-700">Remarks</label>
         <textarea
           name="remarks"
@@ -123,15 +153,17 @@ const PatientForm = ({ onSubmit, initialData = {} }) => {
           onChange={handleChange}
           rows="2"
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Optional: Add any additional notes"
         />
       </div>
 
       <div className="flex justify-end">
         <button
           type="submit"
-          className="btn btn-primary flex items-center gap-2"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          <FaSave /> Save Patient
+          <FaSave className="mr-2" />
+          Save Patient
         </button>
       </div>
     </form>

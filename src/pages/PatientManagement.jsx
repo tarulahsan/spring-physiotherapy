@@ -337,7 +337,7 @@ export default function PatientManagement() {
                         <div className="flex items-center">
                           <FaIdCard className="text-blue-600 mr-2" />
                           <span className="font-semibold text-gray-900">
-                            {patient.patient_id || `${format(new Date(), 'yyyy-MM-dd')}-${index + 1}`}
+                            {patient.patient_id || 'Pending...'}
                           </span>
                         </div>
                       </td>
