@@ -61,6 +61,8 @@ export default function PatientManagement() {
     doctor_id: '',
     therapy_ids: [],
     remarks: '',
+    diagnosis: '',
+    registration_date: new Date().toISOString().split('T')[0],
     discount_giver_id: '',
     referrer_id: ''
   });
@@ -140,6 +142,8 @@ export default function PatientManagement() {
         primary_doctor_id: formData.doctor_id,
         medical_history: formData.medical_history,
         remarks: formData.remarks,
+        diagnosis: formData.diagnosis,
+        registration_date: formData.registration_date,
         discount_giver_id: formData.discount_giver_id || null,
         referrer_id: formData.referrer_id || null
       };
@@ -163,6 +167,8 @@ export default function PatientManagement() {
         doctor_id: '',
         therapy_ids: [],
         remarks: '',
+        diagnosis: '',
+        registration_date: new Date().toISOString().split('T')[0],
         discount_giver_id: '',
         referrer_id: ''
       });
@@ -208,6 +214,8 @@ export default function PatientManagement() {
       doctor_id: patient.primary_doctor_id,
       therapy_ids: patient.therapy_ids || [],
       remarks: patient.remarks,
+      diagnosis: patient.diagnosis,
+      registration_date: patient.registration_date,
       discount_giver_id: patient.discount_giver_id || '',
       referrer_id: patient.referrer_id || ''
     });
@@ -460,6 +468,8 @@ export default function PatientManagement() {
                     doctor_id: '',
                     therapy_ids: [],
                     remarks: '',
+                    diagnosis: '',
+                    registration_date: new Date().toISOString().split('T')[0],
                     discount_giver_id: '',
                     referrer_id: ''
                   });
@@ -562,6 +572,22 @@ export default function PatientManagement() {
                   <FaMapMarkerAlt className="absolute left-4 top-[43px] text-red-400 group-hover:text-red-500 transition-colors" />
                 </div>
 
+                {/* Registration Date */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaCalendarAlt className="text-blue-500 mr-2" />
+                    Registration Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.registration_date}
+                    onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-blue-50/30 hover:bg-blue-50/50"
+                    required
+                  />
+                  <FaCalendarAlt className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
+                </div>
+
                 {/* Medical History */}
                 <div className="md:col-span-2 relative">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -575,6 +601,38 @@ export default function PatientManagement() {
                     rows={4}
                   />
                   <FaNotesMedical className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
+                </div>
+
+                {/* Diagnosis */}
+                <div className="md:col-span-2 relative">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaUserMd className="text-purple-500 mr-2" />
+                    Diagnosis <span className="text-sm text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <textarea
+                    value={formData.diagnosis}
+                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-purple-50/30 hover:bg-purple-50/50"
+                    rows={3}
+                    placeholder="Enter patient diagnosis (optional)"
+                  />
+                  <FaUserMd className="absolute left-4 top-[43px] text-purple-400 group-hover:text-purple-500 transition-colors" />
+                </div>
+
+                {/* Remarks */}
+                <div className="md:col-span-2 relative">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaNotesMedical className="text-orange-500 mr-2" />
+                    Remarks <span className="text-sm text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <textarea
+                    value={formData.remarks}
+                    onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-orange-50/30 hover:bg-orange-50/50"
+                    rows={2}
+                    placeholder="Add any additional notes (optional)"
+                  />
+                  <FaNotesMedical className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
                 </div>
 
                 {/* Treatment List */}
@@ -760,6 +818,8 @@ export default function PatientManagement() {
                       doctor_id: '',
                       therapy_ids: [],
                       remarks: '',
+                      diagnosis: '',
+                      registration_date: new Date().toISOString().split('T')[0],
                       discount_giver_id: '',
                       referrer_id: ''
                     });
