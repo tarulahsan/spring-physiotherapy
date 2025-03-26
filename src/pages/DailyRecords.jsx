@@ -316,6 +316,7 @@ const DailyRecords = () => {
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
@@ -625,6 +626,13 @@ const DailyRecords = () => {
             <FaSearch className="mr-2 text-blue-500" />
             Search Patient
           </h2>
+          <Button
+            onClick={() => setShowRedirectDialog(true)}
+            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            <FaUser className="text-white" />
+            Add New Patient
+          </Button>
         </div>
 
         <div className="relative">
@@ -1055,42 +1063,26 @@ const DailyRecords = () => {
         </div>
       </Dialog>
 
-      {/* Add Patient Modal */}
-      <Dialog
-        open={false}
-        handler={() => {}}
-        className="bg-white rounded-xl shadow-xl max-w-2xl mx-auto"
-      >
-        <DialogHeader className="border-b pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FaUserPlus className="mr-2 text-blue-500" />
-            Add New Patient
-          </h2>
-        </DialogHeader>
-
-        <DialogBody className="overflow-y-auto max-h-[60vh]">
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
-            <div className="flex items-start">
-              <FaExclamationCircle className="text-yellow-500 mt-1 mr-3" />
-              <div>
-                <h4 className="font-semibold text-yellow-800">Please Note</h4>
-                <p className="text-yellow-700 text-sm">
-                  For full patient registration with all features, please use the dedicated Patient Management page.
-                  This form is only for quick registration during daily records entry.
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="text-center text-gray-600 mb-6">
-            👉 Go to <a href="/patients" className="text-blue-500 hover:underline">Patient Management</a> for complete registration.
-          </p>
+      {/* Redirect Dialog */}
+      <Dialog open={showRedirectDialog} handler={() => setShowRedirectDialog(false)}>
+        <DialogHeader>Add New Patient</DialogHeader>
+        <DialogBody>
+          To add a new patient, please visit the Patient Management page. This ensures all patient information is properly recorded.
         </DialogBody>
-
         <DialogFooter>
           <Button
-            color="gray"
+            variant="text"
+            color="red"
+            onClick={() => setShowRedirectDialog(false)}
+            className="mr-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="gradient"
+            color="blue"
             onClick={() => {
-              window.location.href = '/patients';
+              window.location.href = '/patient-management';
             }}
           >
             Go to Patient Management
