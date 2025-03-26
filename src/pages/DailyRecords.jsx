@@ -24,8 +24,7 @@ import {
   FaExclamationCircle,
   FaHeartbeat,
   FaStethoscope,
-  FaBandAid,
-  FaUserPlus
+  FaBandAid
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -317,7 +316,6 @@ const DailyRecords = () => {
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
@@ -627,13 +625,6 @@ const DailyRecords = () => {
             <FaSearch className="mr-2 text-blue-500" />
             Search Patient
           </h2>
-          <Button
-            onClick={() => setShowRedirectDialog(true)}
-            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <FaUserPlus className="text-white" />
-            Add New Patient
-          </Button>
         </div>
 
         <div className="relative">
@@ -1062,33 +1053,6 @@ const DailyRecords = () => {
             Update
           </Button>
         </div>
-      </Dialog>
-
-      {/* Redirect Dialog */}
-      <Dialog open={showRedirectDialog} handler={() => setShowRedirectDialog(false)}>
-        <DialogHeader>Add New Patient</DialogHeader>
-        <DialogBody>
-          To add a new patient, please visit the Patient Management page. This ensures all patient information is properly recorded.
-        </DialogBody>
-        <DialogFooter>
-          <Button
-            variant="text"
-            color="red"
-            onClick={() => setShowRedirectDialog(false)}
-            className="mr-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="gradient"
-            color="blue"
-            onClick={() => {
-              window.location.href = '/patient-management';
-            }}
-          >
-            Go to Patient Management
-          </Button>
-        </DialogFooter>
       </Dialog>
     </div>
   );
