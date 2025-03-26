@@ -19,7 +19,8 @@ import {
   FaCalendarAlt,
   FaUserShield,
   FaIdCard,
-  FaCog
+  FaCog,
+  FaBirthdayCake
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -520,19 +521,19 @@ export default function PatientManagement() {
                 {/* Age */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
-                    <FaVenusMars className="text-pink-500 mr-2" />
+                    <FaBirthdayCake className="text-orange-500 mr-2" />
                     Age <span className="text-sm text-gray-500 ml-1">(Optional)</span>
                   </label>
                   <input
                     type="number"
                     value={formData.age}
                     onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50"
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-orange-50/30 hover:bg-orange-50/50"
                     min="0"
                     max="150"
                     placeholder="Enter patient age"
                   />
-                  <FaVenusMars className="absolute left-4 top-[43px] text-pink-400 group-hover:text-pink-500 transition-colors" />
+                  <FaBirthdayCake className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
                 </div>
 
                 {/* Gender */}
