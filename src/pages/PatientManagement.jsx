@@ -14,10 +14,9 @@ import {
   FaUserMd,
   FaTimes,
   FaSave,
-  FaClinicMedical,
+  FaHandHoldingUsd,
   FaNotesMedical,
   FaCalendarAlt,
-  FaHandHoldingUsd,
   FaUserShield,
   FaIdCard,
   FaCog
@@ -26,7 +25,6 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import patientApi from '../api/patientApi';
 import doctorApi from '../api/doctorApi';
-import therapyApi from '../api/therapyApi';
 import { settingsApi } from '../api/settingsApi';
 import { Card, CardBody, Checkbox, Select, Option } from "@material-tailwind/react";
 import { format } from 'date-fns';
@@ -41,8 +39,6 @@ export default function PatientManagement() {
   const [doctors, setDoctors] = useState([]);
   const [discountGivers, setDiscountGivers] = useState([]);
   const [referrers, setReferrers] = useState([]);
-  const [therapyTypes, setTherapyTypes] = useState([]);
-  const [selectedTherapies, setSelectedTherapies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,7 +55,6 @@ export default function PatientManagement() {
     address: '',
     medical_history: '',
     doctor_id: '',
-    therapy_ids: [],
     remarks: '',
     diagnosis: '',
     registration_date: new Date().toISOString().split('T')[0],
@@ -77,16 +72,6 @@ export default function PatientManagement() {
     }
   };
 
-  const fetchTherapies = async () => {
-    try {
-        const data = await therapyApi.getAllTherapies();
-        setTherapyTypes(data || []);
-    } catch (error) {
-        console.error('Error fetching therapies:', error);
-        toast.error('Failed to fetch therapies');
-    }
-  };
-
   useEffect(() => {
     loadData();
   }, []);
@@ -94,12 +79,11 @@ export default function PatientManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [patientsData, doctorsData, discountGiversData, referrersData, therapyTypesData] = await Promise.all([
+      const [patientsData, doctorsData, discountGiversData, referrersData] = await Promise.all([
         patientApi.getPatients({ searchTerm: '' }), // Get all patients without filtering
         doctorApi.getDoctors(),
         settingsApi.getDiscountGivers(),
-        settingsApi.getReferrers(),
-        therapyApi.getAllTherapies()
+        settingsApi.getReferrers()
       ]);
 
       setAllPatients(patientsData || []); // Store all patients
@@ -107,7 +91,6 @@ export default function PatientManagement() {
       setDoctors(doctorsData || []);
       setDiscountGivers(discountGiversData || []);
       setReferrers(referrersData || []);
-      setTherapyTypes(therapyTypesData || []);
     } catch (error) {
       console.error('Error loading data:', error);
       setError(error.message);
@@ -165,7 +148,6 @@ export default function PatientManagement() {
         address: '',
         medical_history: '',
         doctor_id: '',
-        therapy_ids: [],
         remarks: '',
         diagnosis: '',
         registration_date: new Date().toISOString().split('T')[0],
@@ -212,7 +194,6 @@ export default function PatientManagement() {
       address: patient.address,
       medical_history: patient.medical_history,
       doctor_id: patient.primary_doctor_id,
-      therapy_ids: patient.therapy_ids || [],
       remarks: patient.remarks,
       diagnosis: patient.diagnosis,
       registration_date: patient.registration_date,
@@ -233,7 +214,7 @@ export default function PatientManagement() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-          <FaClinicMedical className="mr-2" /> Patient Management
+          Patient Management
         </h1>
         <button
           onClick={() => setShowAddModal(true)}
@@ -466,7 +447,6 @@ export default function PatientManagement() {
                     address: '',
                     medical_history: '',
                     doctor_id: '',
-                    therapy_ids: [],
                     remarks: '',
                     diagnosis: '',
                     registration_date: new Date().toISOString().split('T')[0],
@@ -652,45 +632,6 @@ export default function PatientManagement() {
                   <FaNotesMedical className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
                 </div>
 
-                {/* Treatment List */}
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 mb-4 flex items-center font-medium">
-                    <FaClinicMedical className="text-teal-500 mr-2" />
-                    Available Treatments
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    {therapyTypes.map((therapy) => (
-                      <Card key={therapy.id} className="transform hover:scale-105 transition-transform duration-300 shadow-md hover:shadow-lg">
-                        <CardBody>
-                          <div className="flex items-start space-x-4">
-                            <Checkbox
-                              checked={formData.therapy_ids.includes(therapy.id)}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  therapy_ids: isChecked
-                                    ? [...prev.therapy_ids, therapy.id]
-                                    : prev.therapy_ids.filter(id => id !== therapy.id)
-                                }));
-                              }}
-                              className="checked:bg-teal-500"
-                            />
-                            <div>
-                              <h5 className="text-lg font-semibold mb-2 flex items-center">
-                                <FaClinicMedical className="text-teal-500 mr-2" />
-                                {therapy.name}
-                              </h5>
-                              <p className="text-gray-600 text-sm">{therapy.description}</p>
-                              <p className="text-teal-600 font-medium mt-2">৳{therapy.price}</p>
-                            </div>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Discount Giver */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -807,7 +748,6 @@ export default function PatientManagement() {
                       address: '',
                       medical_history: '',
                       doctor_id: '',
-                      therapy_ids: [],
                       remarks: '',
                       diagnosis: '',
                       registration_date: new Date().toISOString().split('T')[0],
