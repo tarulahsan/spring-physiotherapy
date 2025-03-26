@@ -24,7 +24,8 @@ import {
   FaExclamationCircle,
   FaHeartbeat,
   FaStethoscope,
-  FaBandAid
+  FaBandAid,
+  FaUserPlus
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -630,7 +631,7 @@ const DailyRecords = () => {
             onClick={() => setShowRedirectDialog(true)}
             className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
           >
-            <FaUser className="text-white" />
+            <FaUserPlus className="text-white" />
             Add New Patient
           </Button>
         </div>
