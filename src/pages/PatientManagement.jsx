@@ -53,6 +53,7 @@ export default function PatientManagement() {
     phone: '',
     email: '',
     address: '',
+    age: '',
     medical_history: '',
     doctor_id: '',
     remarks: '',
@@ -122,6 +123,7 @@ export default function PatientManagement() {
         email: formData.email,
         gender: formData.gender,
         address: formData.address,
+        age: formData.age,
         primary_doctor_id: formData.doctor_id,
         medical_history: formData.medical_history,
         remarks: formData.remarks,
@@ -146,6 +148,7 @@ export default function PatientManagement() {
         phone: '',
         email: '',
         address: '',
+        age: '',
         medical_history: '',
         doctor_id: '',
         remarks: '',
@@ -192,6 +195,7 @@ export default function PatientManagement() {
       phone: patient.phone,
       email: patient.email,
       address: patient.address,
+      age: patient.age,
       medical_history: patient.medical_history,
       doctor_id: patient.primary_doctor_id,
       remarks: patient.remarks,
@@ -445,6 +449,7 @@ export default function PatientManagement() {
                     phone: '',
                     email: '',
                     address: '',
+                    age: '',
                     medical_history: '',
                     doctor_id: '',
                     remarks: '',
@@ -512,6 +517,24 @@ export default function PatientManagement() {
                   <FaPhone className="absolute left-4 top-[43px] text-green-400 group-hover:text-green-500 transition-colors" />
                 </div>
 
+                {/* Age */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaVenusMars className="text-pink-500 mr-2" />
+                    Age <span className="text-sm text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50"
+                    min="0"
+                    max="150"
+                    placeholder="Enter patient age"
+                  />
+                  <FaVenusMars className="absolute left-4 top-[43px] text-pink-400 group-hover:text-pink-500 transition-colors" />
+                </div>
+
                 {/* Gender */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -521,7 +544,7 @@ export default function PatientManagement() {
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50"
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
@@ -556,7 +579,7 @@ export default function PatientManagement() {
                   <select
                     value={formData.doctor_id}
                     onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50"
                   >
                     <option value="">Select Doctor</option>
                     {doctors.map(doctor => (
@@ -746,6 +769,7 @@ export default function PatientManagement() {
                       phone: '',
                       email: '',
                       address: '',
+                      age: '',
                       medical_history: '',
                       doctor_id: '',
                       remarks: '',
