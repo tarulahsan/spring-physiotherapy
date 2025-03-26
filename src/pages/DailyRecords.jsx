@@ -620,7 +620,7 @@ const DailyRecords = () => {
 
       {/* Patient Selection Section */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center mb-4">
           <h2 className="text-2xl font-semibold flex items-center">
             <FaSearch className="mr-2 text-blue-500" />
             Search Patient
