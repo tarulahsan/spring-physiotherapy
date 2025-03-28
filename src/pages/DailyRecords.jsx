@@ -24,7 +24,9 @@ import {
   FaExclamationCircle,
   FaHeartbeat,
   FaStethoscope,
-  FaBandAid
+  FaBandAid,
+  FaUserShield,
+  FaUserClock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
