@@ -300,7 +300,16 @@ const Invoice = () => {
 
       // Format the invoice data
       const invoiceData = {
-        ...currentInvoice,
+        invoice_date: currentInvoice.invoice_date,
+        patient_id: currentInvoice.patient_id, // This is the UUID
+        doctor_id: currentInvoice.doctor_id,
+        discount_giver_id: currentInvoice.discount_giver_id,
+        discount_amount: currentInvoice.discount_amount,
+        subtotal: currentInvoice.subtotal,
+        total_amount: currentInvoice.total_amount,
+        paid_amount: currentInvoice.paid_amount,
+        due_amount: currentInvoice.due_amount,
+        notes: currentInvoice.notes,
         items: selectedTherapies.map(therapy => ({
           therapy_type_id: therapy.therapy_type_id,
           quantity: therapy.quantity,
