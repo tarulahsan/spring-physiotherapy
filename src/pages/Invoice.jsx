@@ -317,29 +317,49 @@ const Invoice = () => {
             body {
               font-family: Arial, sans-serif;
               line-height: 1.6;
-              padding: 20px;
+              padding: 40px;
+              max-width: 1000px;
+              margin: 0 auto;
             }
             .header {
               text-align: center;
+              margin-bottom: 40px;
+              padding: 20px;
+            }
+            .logo-container {
               margin-bottom: 30px;
+              padding: 20px;
+            }
+            .logo-container img {
+              max-height: 120px;
+              max-width: 300px;
+              display: block;
+              margin: 0 auto;
             }
             .business-info {
-              margin-bottom: 20px;
+              margin-bottom: 30px;
             }
             .invoice-details {
-              margin-bottom: 20px;
+              margin-bottom: 30px;
+              border: 1px solid #eee;
+              padding: 20px;
+              border-radius: 8px;
+              background-color: #f8f9fa;
             }
             .patient-info {
-              margin-bottom: 20px;
+              margin-bottom: 30px;
+              border: 1px solid #eee;
+              padding: 20px;
+              border-radius: 8px;
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-bottom: 20px;
+              margin-bottom: 30px;
             }
             th, td {
               border: 1px solid #ddd;
-              padding: 8px;
+              padding: 12px;
               text-align: left;
             }
             th {
@@ -347,41 +367,56 @@ const Invoice = () => {
             }
             .totals {
               float: right;
-              width: 300px;
+              width: 350px;
+              margin-left: 20px;
             }
             .totals table {
               margin-top: 20px;
+              background-color: #f8f9fa;
             }
             .footer {
-              margin-top: 50px;
+              margin-top: 60px;
               text-align: center;
               font-size: 0.9em;
+              clear: both;
+              padding-top: 30px;
+              border-top: 1px solid #eee;
             }
             @media print {
-              body { margin: 0; }
-              .totals { page-break-inside: avoid; }
+              body { 
+                margin: 0;
+                padding: 20px;
+              }
+              .totals { 
+                page-break-inside: avoid;
+              }
             }
           </style>
         </head>
         <body>
           <div class="header">
-            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo" style="max-height: 100px; margin: 0 auto 20px;">` : ''}
-            <h1>${settings?.business_name || 'Spring Physiotherapy'}</h1>
-            <p>${settings?.address || ''}</p>
-            <p>Phone: ${settings?.phone || ''}</p>
-            <p>Email: ${settings?.email || ''}</p>
+            ${settings?.logo_url ? `
+              <div class="logo-container">
+                <img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo">
+              </div>
+            ` : ''}
+            <h1 style="font-size: 24px; margin-bottom: 15px;">${settings?.business_name || 'Spring Physiotherapy'}</h1>
+            <p style="margin: 5px 0;">${settings?.address || ''}</p>
+            <p style="margin: 5px 0;">Phone: ${settings?.phone || ''}</p>
+            <p style="margin: 5px 0;">Email: ${settings?.email || ''}</p>
           </div>
 
           <div class="invoice-details">
-            <h2>Invoice</h2>
-            <p><strong>Invoice Date:</strong> ${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</p>
-            <p><strong>Invoice Number:</strong> #${invoice.id.slice(0, 8)}</p>
+            <h2 style="margin-bottom: 15px;">Invoice Details</h2>
+            <p style="margin: 8px 0;"><strong>Invoice Date:</strong> ${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</p>
+            <p style="margin: 8px 0;"><strong>Invoice Number:</strong> #${invoice.id.slice(0, 8)}</p>
           </div>
 
           <div class="patient-info">
-            <h3>Patient Information</h3>
-            <p><strong>Name:</strong> ${currentInvoice.patient_name}</p>
-            <p><strong>Phone:</strong> ${currentInvoice.patient_phone}</p>
+            <h3 style="margin-bottom: 15px;">Patient Information</h3>
+            <p style="margin: 8px 0;"><strong>Patient ID:</strong> ${currentInvoice.patient_id}</p>
+            <p style="margin: 8px 0;"><strong>Name:</strong> ${currentInvoice.patient_name}</p>
+            <p style="margin: 8px 0;"><strong>Phone:</strong> ${currentInvoice.patient_phone}</p>
           </div>
 
           <table>
