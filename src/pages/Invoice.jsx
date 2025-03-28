@@ -115,7 +115,7 @@ const Invoice = () => {
   const handlePatientSelect = (patient) => {
     setCurrentInvoice(prev => ({
       ...prev,
-      patient_id: patient.id,
+      patient_id: patient.patient_id,
       patient_name: patient.name,
       patient_phone: patient.phone,
       doctor_id: patient.doctor_id || ''
@@ -315,16 +315,19 @@ const Invoice = () => {
           <title>Invoice #${invoice.id}</title>
           <style>
             body {
-              font-family: Arial, sans-serif;
+              font-family: 'Segoe UI', Arial, sans-serif;
               line-height: 1.6;
               padding: 40px;
               max-width: 1000px;
               margin: 0 auto;
+              background-color: #fff;
+              color: #2d3748;
             }
             .header {
               text-align: center;
               margin-bottom: 40px;
               padding: 20px;
+              border-bottom: 2px solid #e2e8f0;
             }
             .logo-container {
               margin-bottom: 30px;
@@ -336,43 +339,80 @@ const Invoice = () => {
               display: block;
               margin: 0 auto;
             }
-            .business-info {
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              gap: 30px;
               margin-bottom: 30px;
             }
-            .invoice-details {
-              margin-bottom: 30px;
-              border: 1px solid #eee;
-              padding: 20px;
-              border-radius: 8px;
-              background-color: #f8f9fa;
+            .info-column {
+              flex: 1;
+              padding: 25px;
+              border-radius: 12px;
+              background-color: #f8fafc;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              border: 1px solid #e2e8f0;
             }
-            .patient-info {
-              margin-bottom: 30px;
-              border: 1px solid #eee;
-              padding: 20px;
-              border-radius: 8px;
+            .info-column h2, .info-column h3 {
+              color: #2d3748;
+              margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #e2e8f0;
+              font-size: 1.25rem;
+            }
+            .info-item {
+              margin: 12px 0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .info-label {
+              font-weight: 600;
+              color: #4a5568;
+            }
+            .info-value {
+              color: #2d3748;
             }
             table {
               width: 100%;
-              border-collapse: collapse;
+              border-collapse: separate;
+              border-spacing: 0;
               margin-bottom: 30px;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
             th, td {
-              border: 1px solid #ddd;
-              padding: 12px;
+              border: 1px solid #e2e8f0;
+              padding: 16px;
               text-align: left;
             }
             th {
-              background-color: #f5f5f5;
+              background-color: #f8fafc;
+              font-weight: 600;
+              color: #4a5568;
+            }
+            tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
+            tr:hover {
+              background-color: #edf2f7;
             }
             .totals {
               float: right;
               width: 350px;
               margin-left: 20px;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
             .totals table {
-              margin-top: 20px;
-              background-color: #f8f9fa;
+              margin: 0;
+              box-shadow: none;
+            }
+            .totals tr:last-child {
+              background-color: #ebf4ff;
+              font-weight: 600;
             }
             .footer {
               margin-top: 60px;
@@ -380,15 +420,20 @@ const Invoice = () => {
               font-size: 0.9em;
               clear: both;
               padding-top: 30px;
-              border-top: 1px solid #eee;
+              border-top: 2px solid #e2e8f0;
+              color: #4a5568;
             }
             @media print {
               body { 
                 margin: 0;
                 padding: 20px;
+                background-color: #fff;
               }
               .totals { 
                 page-break-inside: avoid;
+              }
+              .info-column {
+                break-inside: avoid;
               }
             }
           </style>
@@ -406,17 +451,33 @@ const Invoice = () => {
             <p style="margin: 5px 0;">Email: ${settings?.email || ''}</p>
           </div>
 
-          <div class="invoice-details">
-            <h2 style="margin-bottom: 15px;">Invoice Details</h2>
-            <p style="margin: 8px 0;"><strong>Invoice Date:</strong> ${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</p>
-            <p style="margin: 8px 0;"><strong>Invoice Number:</strong> #${invoice.id.slice(0, 8)}</p>
-          </div>
-
-          <div class="patient-info">
-            <h3 style="margin-bottom: 15px;">Patient Information</h3>
-            <p style="margin: 8px 0;"><strong>Patient ID:</strong> ${currentInvoice.patient_id}</p>
-            <p style="margin: 8px 0;"><strong>Name:</strong> ${currentInvoice.patient_name}</p>
-            <p style="margin: 8px 0;"><strong>Phone:</strong> ${currentInvoice.patient_phone}</p>
+          <div class="info-row">
+            <div class="info-column">
+              <h2>Invoice Details</h2>
+              <div class="info-item">
+                <span class="info-label">Invoice Date:</span>
+                <span class="info-value">${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Invoice Number:</span>
+                <span class="info-value">#${invoice.id.slice(0, 8)}</span>
+              </div>
+            </div>
+            <div class="info-column">
+              <h2>Patient Information</h2>
+              <div class="info-item">
+                <span class="info-label">Patient ID:</span>
+                <span class="info-value">${currentInvoice.patient_id}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Name:</span>
+                <span class="info-value">${currentInvoice.patient_name}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Phone:</span>
+                <span class="info-value">${currentInvoice.patient_phone}</span>
+              </div>
+            </div>
           </div>
 
           <table>
