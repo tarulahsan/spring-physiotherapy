@@ -340,18 +340,21 @@ const Invoice = () => {
               margin: 0 auto;
             }
             .info-row {
-              display: flex;
-              justify-content: space-between;
-              gap: 30px;
+              display: flex !important;
+              justify-content: space-between !important;
+              gap: 30px !important;
               margin-bottom: 30px;
+              page-break-inside: avoid;
             }
             .info-column {
-              flex: 1;
+              flex: 1 !important;
+              width: 48% !important;
               padding: 25px;
               border-radius: 12px;
               background-color: #f8fafc;
               box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
               border: 1px solid #e2e8f0;
+              page-break-inside: avoid;
             }
             .info-column h2, .info-column h3 {
               color: #2d3748;
@@ -429,6 +432,14 @@ const Invoice = () => {
                 padding: 20px;
                 background-color: #fff;
               }
+              .info-row {
+                display: flex !important;
+                flex-direction: row !important;
+              }
+              .info-column {
+                flex: 1 !important;
+                width: 48% !important;
+              }
               .totals { 
                 page-break-inside: avoid;
               }
@@ -451,8 +462,8 @@ const Invoice = () => {
             <p style="margin: 5px 0;">Email: ${settings?.email || ''}</p>
           </div>
 
-          <div class="info-row">
-            <div class="info-column">
+          <section class="info-row" style="display: flex !important; justify-content: space-between !important;">
+            <div class="info-column" style="flex: 1 !important; width: 48% !important;">
               <h2>Invoice Details</h2>
               <div class="info-item">
                 <span class="info-label">Invoice Date:</span>
@@ -463,7 +474,7 @@ const Invoice = () => {
                 <span class="info-value">#${invoice.id.slice(0, 8)}</span>
               </div>
             </div>
-            <div class="info-column">
+            <div class="info-column" style="flex: 1 !important; width: 48% !important;">
               <h2>Patient Information</h2>
               <div class="info-item">
                 <span class="info-label">Patient ID:</span>
@@ -478,7 +489,7 @@ const Invoice = () => {
                 <span class="info-value">${currentInvoice.patient_phone}</span>
               </div>
             </div>
-          </div>
+          </section>
 
           <table>
             <thead>
