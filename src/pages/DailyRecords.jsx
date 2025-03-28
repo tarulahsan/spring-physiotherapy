@@ -3,30 +3,19 @@ import {
   FaSearch, 
   FaEdit, 
   FaTrash, 
-  FaUser, 
-  FaPhone, 
-  FaMapMarkerAlt, 
-  FaChevronLeft, 
-  FaChevronRight,
-  FaEnvelope,
+  FaUser,
+  FaPhone,
   FaVenusMars,
-  FaUserMd,
-  FaTimes,
-  FaSave,
-  FaClinicMedical,
-  FaNotesMedical,
   FaCalendarAlt,
-  FaHandHoldingUsd,
-  FaIdCard,
-  FaCog,
-  FaClock,
-  FaCheckCircle,
+  FaClinicMedical,
   FaExclamationCircle,
+  FaCheckCircle,
+  FaClock,
+  FaUserMd,
   FaHeartbeat,
   FaStethoscope,
   FaBandAid,
-  FaUserShield,
-  FaUserClock
+  FaNotesMedical
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -197,12 +186,19 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
                   </div>
                   <span className="text-sm font-medium text-emerald-700">{record.therapy_types.name}</span>
                 </div>
-                {record.due_amount > 0 && (
+                {record.due_amount > 0 ? (
                   <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg shadow-sm">
                     <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center transform rotate-3">
                       <FaExclamationCircle className="text-white text-sm transform -rotate-3" />
                     </div>
                     <span className="text-sm font-medium text-red-700">Due: ৳{record.due_amount.toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center transform rotate-3">
+                      <FaCheckCircle className="text-white text-sm transform -rotate-3" />
+                    </div>
+                    <span className="text-sm font-medium text-green-700">Paid</span>
                   </div>
                 )}
               </div>

@@ -435,7 +435,8 @@ export const updateDailyRecord = async (recordId, updates) => {
   try {
     console.log('Updating daily record:', { recordId, updates });
     
-    const { data, error } = await supabase
+    // First update the record
+    const { data: updatedData, error: updateError } = await supabase
       .from('daily_therapy_records')
       .update(updates)
       .eq('id', recordId)
@@ -465,13 +466,96 @@ export const updateDailyRecord = async (recordId, updates) => {
         )
       `);
 
-    if (error) {
-      console.error('Error updating daily record:', error);
-      throw error;
+    if (updateError) {
+      console.error('Error updating daily record:', updateError);
+      throw updateError;
     }
-    
-    console.log('Updated daily record:', data);
-    return data[0];
+
+    if (!updatedData || updatedData.length === 0) {
+      throw new Error('No record found to update');
+    }
+
+    const record = updatedData[0];
+
+    // Get additional details for the patient
+    try {
+      // Get active invoices for the patient
+      const { data: invoices, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          id,
+          total_amount,
+          paid_amount,
+          status,
+          invoice_items!left (
+            id,
+            days,
+            quantity,
+            therapy_type_id,
+            therapy_types!left (
+              id,
+              name,
+              description,
+              price
+            )
+          )
+        `)
+        .eq('patient_id', record.patients.id)
+        .in('status', ['paid', 'partially_paid'])
+        .order('created_at', { ascending: false });
+
+      if (invoiceError) {
+        console.error('Error fetching invoices:', invoiceError);
+        return {
+          ...record,
+          due_amount: 0,
+          other_therapies: []
+        };
+      }
+
+      // Calculate total due amount
+      const totalDue = (invoices || []).reduce((sum, invoice) => {
+        if (invoice.status === 'partially_paid') {
+          return sum + (invoice.total_amount - (invoice.paid_amount || 0));
+        }
+        return sum;
+      }, 0);
+
+      // Get other active therapies
+      const otherTherapies = (invoices || []).flatMap(invoice => 
+        (invoice.invoice_items || [])
+          .filter(item => 
+            item?.therapy_type_id !== record.therapy_types.id &&
+            item?.therapy_types
+          )
+          .map(item => ({
+            ...item.therapy_types,
+            days: item.days,
+            quantity: item.quantity
+          }))
+      );
+
+      // Remove duplicates
+      const uniqueTherapies = Array.from(
+        new Map(otherTherapies.map(t => [t.id, t])).values()
+      );
+
+      const enhancedRecord = {
+        ...record,
+        due_amount: totalDue,
+        other_therapies: uniqueTherapies
+      };
+
+      console.log('Enhanced updated record:', enhancedRecord);
+      return enhancedRecord;
+    } catch (error) {
+      console.error('Error enhancing record:', error);
+      return {
+        ...record,
+        due_amount: 0,
+        other_therapies: []
+      };
+    }
   } catch (error) {
     console.error('Error in updateDailyRecord:', error);
     throw error;
