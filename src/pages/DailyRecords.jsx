@@ -407,6 +407,7 @@ const DailyRecords = () => {
         console.log('No therapies found');
         setAvailableTherapies([]);
         setSelectedTherapies([]);
+        toast.info('No active therapies available for this patient');
       } else {
         setAvailableTherapies(therapies);
       }
