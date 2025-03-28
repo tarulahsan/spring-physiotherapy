@@ -566,18 +566,21 @@ const DailyRecords = () => {
         therapyTime
       });
 
+      // First update in the database
       const updatedRecord = await updateDailyRecord(editingRecord.id, {
-        therapy_time: therapyTime // Make sure this is in HH:mm format
+        therapy_time: therapyTime
       });
 
-      console.log('Updated record:', updatedRecord);
+      if (!updatedRecord) {
+        throw new Error('Failed to update record');
+      }
 
-      // Update the record in the dailyRecords state
+      console.log('Updated record from database:', updatedRecord);
+
+      // Then update the local state with the database response
       setDailyRecords(prevRecords => 
         prevRecords.map(record => 
-          record.id === editingRecord.id 
-            ? { ...record, therapy_time: therapyTime }
-            : record
+          record.id === editingRecord.id ? updatedRecord : record
         )
       );
 
@@ -585,9 +588,6 @@ const DailyRecords = () => {
       setEditingRecord(null);
       setTherapyTime('');
       setShowEditModal(false);
-      
-      // Reload daily records to get fresh data
-      await loadDailyRecords();
     } catch (error) {
       console.error('Error updating record:', error);
       toast.error('Failed to update record');

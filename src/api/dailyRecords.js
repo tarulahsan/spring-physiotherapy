@@ -450,13 +450,18 @@ export const updateDailyRecord = async (recordId, updates) => {
           email,
           age,
           gender,
-          address
+          address,
+          primary_doctor_id,
+          discount_giver_id,
+          referrer_id,
+          patient_id
         ),
         therapy_types!fk_daily_therapy_records_therapy (
           id,
           name,
           description,
-          price
+          price,
+          status
         )
       `);
 
