@@ -66,7 +66,6 @@ const TherapyCard = ({ therapy, selected, onSelect, remainingDays }) => (
 
 const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
 
   // Function to get gradient colors based on index
   const getSerialStyles = (idx) => {
@@ -118,7 +117,6 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
         className={`transform transition-all duration-300 hover:scale-[1.02]
           rounded-xl shadow-lg hover:shadow-2xl border border-gray-100
           bg-gray-50 hover:bg-gray-100 backdrop-blur-lg
-          ${showDetails ? 'scale-[1.02]' : ''}
           relative overflow-hidden
           before:content-[''] before:absolute before:inset-0 
           before:bg-gradient-to-r before:from-emerald-50/30 before:to-blue-50/30
@@ -126,7 +124,7 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
           md:flex md:flex-col`}
       >
         {/* Main Info Section */}
-        <div className="px-6 py-4 cursor-pointer relative z-10" onClick={() => setShowDetails(!showDetails)}>
+        <div className="px-6 py-4 cursor-pointer relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Serial Number with Icon */}
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -237,31 +235,6 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
               </div>
             </div>
           </div>
-
-          {/* Expanded Details Section */}
-          {showDetails && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Additional Notes</h4>
-                  <p className="text-gray-700">{record.notes || 'No notes available'}</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Treatment Details</h4>
-                  <p className="text-gray-700">{record.therapy_types.description || 'No description available'}</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Payment Status</h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-md text-sm font-medium
-                      ${record.due_amount > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {record.due_amount > 0 ? 'Pending' : 'Paid'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
