@@ -36,11 +36,11 @@ const Invoice = () => {
   const [selectedTherapies, setSelectedTherapies] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState({
     invoice_date: format(new Date(), 'yyyy-MM-dd'),
-    patient_id: '',
+    patient_id: null,
     patient_display_id: '',
     patient_name: '',
     patient_phone: '',
-    doctor_id: '',
+    doctor_id: null,
     discount_giver_id: null,
     discount_amount: 0,
     items: [],
@@ -116,8 +116,8 @@ const Invoice = () => {
   const handlePatientSelect = (patient) => {
     setCurrentInvoice(prev => ({
       ...prev,
-      patient_id: patient.id, // Use UUID for database operations
-      patient_display_id: patient.patient_id, // Store formatted ID for display
+      patient_id: patient.id, 
+      patient_display_id: patient.patient_id, 
       patient_name: patient.name,
       patient_phone: patient.phone,
       doctor_id: patient.doctor_id || ''
@@ -301,7 +301,7 @@ const Invoice = () => {
       // Format the invoice data
       const invoiceData = {
         invoice_date: currentInvoice.invoice_date,
-        patient_id: currentInvoice.patient_id, // This is the UUID
+        patient_id: currentInvoice.patient_id, 
         doctor_id: currentInvoice.doctor_id,
         discount_giver_id: currentInvoice.discount_giver_id,
         discount_amount: currentInvoice.discount_amount,
@@ -582,11 +582,11 @@ const Invoice = () => {
       // Reset form
       setCurrentInvoice({
         invoice_date: format(new Date(), 'yyyy-MM-dd'),
-        patient_id: '',
+        patient_id: null,
         patient_display_id: '',
         patient_name: '',
         patient_phone: '',
-        doctor_id: '',
+        doctor_id: null,
         discount_giver_id: null,
         discount_amount: 0,
         items: [],
