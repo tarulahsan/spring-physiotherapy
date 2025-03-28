@@ -365,6 +365,7 @@ const Invoice = () => {
         </head>
         <body>
           <div class="header">
+            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo" style="max-height: 100px; margin: 0 auto 20px;">` : ''}
             <h1>${settings?.business_name || 'Spring Physiotherapy'}</h1>
             <p>${settings?.address || ''}</p>
             <p>Phone: ${settings?.phone || ''}</p>
@@ -786,7 +787,7 @@ const Invoice = () => {
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
                 <span>Due Amount:</span>
-                <span className="text-red-600">{settings?.currency || 'BDT'} {currentInvoice.due_amount}</span>
+                <span className="text-red-600">{settings?.currency || '৳'} {currentInvoice.due_amount}</span>
               </div>
             </div>
           </div>
