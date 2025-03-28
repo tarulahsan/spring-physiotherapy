@@ -435,10 +435,25 @@ export const updateDailyRecord = async (recordId, updates) => {
   try {
     console.log('Updating daily record:', { recordId, updates });
     
-    const { data, error } = await supabase
+    // First update the record
+    const { data: updatedData, error: updateError } = await supabase
       .from('daily_therapy_records')
       .update(updates)
       .eq('id', recordId)
+      .select('*');
+
+    if (updateError) {
+      console.error('Error updating daily record:', updateError);
+      throw updateError;
+    }
+
+    if (!updatedData || updatedData.length === 0) {
+      throw new Error('No record found to update');
+    }
+
+    // Now get the full record with all relations
+    const { data: fullRecord, error: fetchError } = await supabase
+      .from('daily_therapy_records')
       .select(`
         id,
         therapy_date,
@@ -456,17 +471,22 @@ export const updateDailyRecord = async (recordId, updates) => {
           id,
           name,
           description,
-          price
+          price,
+          status
         )
-      `);
+      `)
+      .eq('id', recordId)
+      .single();
 
-    if (error) {
-      console.error('Error updating daily record:', error);
-      throw error;
+    if (fetchError) {
+      console.error('Error fetching updated record:', fetchError);
+      throw fetchError;
     }
-    
-    console.log('Updated daily record:', data);
-    return data[0];
+
+    return {
+      ...fullRecord,
+      due_amount: 0 // We'll handle payment status display separately
+    };
   } catch (error) {
     console.error('Error in updateDailyRecord:', error);
     throw error;

@@ -3,28 +3,19 @@ import {
   FaSearch, 
   FaEdit, 
   FaTrash, 
-  FaUser, 
-  FaPhone, 
-  FaMapMarkerAlt, 
-  FaChevronLeft, 
-  FaChevronRight,
-  FaEnvelope,
+  FaUser,
+  FaPhone,
   FaVenusMars,
-  FaUserMd,
-  FaTimes,
-  FaSave,
-  FaClinicMedical,
-  FaNotesMedical,
   FaCalendarAlt,
-  FaHandHoldingUsd,
-  FaIdCard,
-  FaCog,
-  FaClock,
-  FaCheckCircle,
+  FaClinicMedical,
   FaExclamationCircle,
+  FaCheckCircle,
+  FaClock,
+  FaUserMd,
   FaHeartbeat,
   FaStethoscope,
-  FaBandAid
+  FaBandAid,
+  FaNotesMedical
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -75,7 +66,6 @@ const TherapyCard = ({ therapy, selected, onSelect, remainingDays }) => (
 
 const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
 
   // Function to get gradient colors based on index
   const getSerialStyles = (idx) => {
@@ -127,7 +117,6 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
         className={`transform transition-all duration-300 hover:scale-[1.02]
           rounded-xl shadow-lg hover:shadow-2xl border border-gray-100
           bg-gray-50 hover:bg-gray-100 backdrop-blur-lg
-          ${showDetails ? 'scale-[1.02]' : ''}
           relative overflow-hidden
           before:content-[''] before:absolute before:inset-0 
           before:bg-gradient-to-r before:from-emerald-50/30 before:to-blue-50/30
@@ -135,7 +124,7 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
           md:flex md:flex-col`}
       >
         {/* Main Info Section */}
-        <div className="px-6 py-4 cursor-pointer relative z-10" onClick={() => setShowDetails(!showDetails)}>
+        <div className="px-6 py-4 cursor-pointer relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Serial Number with Icon */}
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex items-center">
@@ -195,12 +184,19 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
                   </div>
                   <span className="text-sm font-medium text-emerald-700">{record.therapy_types.name}</span>
                 </div>
-                {record.due_amount > 0 && (
+                {record.due_amount > 0 ? (
                   <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg shadow-sm">
                     <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center transform rotate-3">
                       <FaExclamationCircle className="text-white text-sm transform -rotate-3" />
                     </div>
                     <span className="text-sm font-medium text-red-700">Due: ৳{record.due_amount.toLocaleString()}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg shadow-sm">
+                    <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center transform rotate-3">
+                      <FaCheckCircle className="text-white text-sm transform -rotate-3" />
+                    </div>
+                    <span className="text-sm font-medium text-green-700">Paid</span>
                   </div>
                 )}
               </div>
@@ -239,31 +235,6 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
               </div>
             </div>
           </div>
-
-          {/* Expanded Details Section */}
-          {showDetails && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Additional Notes</h4>
-                  <p className="text-gray-700">{record.notes || 'No notes available'}</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Treatment Details</h4>
-                  <p className="text-gray-700">{record.therapy_types.description || 'No description available'}</p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-600">Payment Status</h4>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-md text-sm font-medium
-                      ${record.due_amount > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {record.due_amount > 0 ? 'Pending' : 'Paid'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -405,6 +376,7 @@ const DailyRecords = () => {
         console.log('No therapies found');
         setAvailableTherapies([]);
         setSelectedTherapies([]);
+        toast.info('No active therapies available for this patient');
       } else {
         setAvailableTherapies(therapies);
       }
@@ -563,14 +535,27 @@ const DailyRecords = () => {
         therapyTime
       });
 
-      await updateDailyRecord(editingRecord.id, {
-        therapy_time: therapyTime // Make sure this is in HH:mm format
+      // First update in the database
+      const updatedRecord = await updateDailyRecord(editingRecord.id, {
+        therapy_time: therapyTime
       });
+
+      if (!updatedRecord) {
+        throw new Error('Failed to update record');
+      }
+
+      console.log('Updated record from database:', updatedRecord);
+
+      // Then update the local state with the database response
+      setDailyRecords(prevRecords => 
+        prevRecords.map(record => 
+          record.id === editingRecord.id ? updatedRecord : record
+        )
+      );
 
       toast.success('Record updated successfully');
       setEditingRecord(null);
       setTherapyTime('');
-      loadDailyRecords();
       setShowEditModal(false);
     } catch (error) {
       console.error('Error updating record:', error);
