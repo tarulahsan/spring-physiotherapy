@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FaUserPlus, 
   FaSearch, 
   FaEdit, 
   FaTrash, 
@@ -18,7 +17,6 @@ import {
   FaNotesMedical,
   FaCalendarAlt,
   FaHandHoldingUsd,
-  FaUserShield,
   FaIdCard,
   FaCog,
   FaClock,
@@ -317,21 +315,7 @@ const DailyRecords = () => {
   const [editingRecord, setEditingRecord] = useState(null);
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    gender: '',
-    phone: '',
-    email: '',
-    address: '',
-    medical_history: '',
-    remarks: '',
-    primary_doctor_id: '',
-    discount_giver_id: '',
-    referrer_id: ''
-  });
-
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
@@ -610,52 +594,6 @@ const DailyRecords = () => {
     }
   };
 
-  const handleAddPatient = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      
-      const patientData = {
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        gender: formData.gender,
-        address: formData.address,
-        primary_doctor_id: formData.primary_doctor_id,
-        medical_history: formData.medical_history,
-        remarks: formData.remarks,
-        discount_giver_id: formData.discount_giver_id || null,
-        referrer_id: formData.referrer_id || null
-      };
-
-      const newPatient = await patientApi.createPatient(patientData);
-      toast.success('Patient added successfully');
-
-      // Select the newly created patient
-      handlePatientSelect(newPatient);
-
-      // Reset form and close modal
-      setFormData({
-        name: '',
-        gender: '',
-        phone: '',
-        email: '',
-        address: '',
-        medical_history: '',
-        remarks: '',
-        primary_doctor_id: '',
-        discount_giver_id: '',
-        referrer_id: ''
-      });
-      setShowAddModal(false);
-    } catch (err) {
-      console.error('Error adding patient:', err);
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Calculate pagination
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
@@ -682,19 +620,11 @@ const DailyRecords = () => {
 
       {/* Patient Selection Section */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center mb-4">
           <h2 className="text-2xl font-semibold flex items-center">
             <FaSearch className="mr-2 text-blue-500" />
             Search Patient
           </h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg
-              hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-          >
-            <FaUserPlus />
-            Add New Patient
-          </button>
         </div>
 
         <div className="relative">
@@ -1123,234 +1053,6 @@ const DailyRecords = () => {
             Update
           </Button>
         </div>
-      </Dialog>
-
-      {/* Add Patient Modal */}
-      <Dialog
-        open={showAddModal}
-        handler={() => setShowAddModal(false)}
-        className="bg-white rounded-xl shadow-xl max-w-2xl mx-auto"
-      >
-        <DialogHeader className="border-b pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FaUserPlus className="mr-2 text-blue-500" />
-            Add New Patient
-          </h2>
-        </DialogHeader>
-
-        <DialogBody className="overflow-y-auto max-h-[60vh]">
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gender *
-                  </label>
-                  <select
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
-                </label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            {/* Medical Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Medical Information
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Medical History
-                </label>
-                <textarea
-                  value={formData.medical_history}
-                  onChange={(e) => setFormData({ ...formData, medical_history: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Remarks
-                </label>
-                <textarea
-                  value={formData.remarks}
-                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            {/* References */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                References
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Doctor
-                  </label>
-                  <select
-                    value={formData.primary_doctor_id}
-                    onChange={(e) => setFormData({ ...formData, primary_doctor_id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Doctor</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Discount Giver
-                  </label>
-                  <select
-                    value={formData.discount_giver_id}
-                    onChange={(e) => setFormData({ ...formData, discount_giver_id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Discount Giver</option>
-                    {discountGivers.map(giver => (
-                      <option key={giver.id} value={giver.id}>
-                        {giver.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Referrer
-                  </label>
-                  <select
-                    value={formData.referrer_id}
-                    onChange={(e) => setFormData({ ...formData, referrer_id: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select Referrer</option>
-                    {referrers.map(referrer => (
-                      <option key={referrer.id} value={referrer.id}>
-                        {referrer.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </form>
-        </DialogBody>
-
-        <DialogFooter className="border-t pt-4">
-          <div className="flex justify-end gap-4">
-            <Button
-              variant="outlined"
-              color="gray"
-              onClick={() => {
-                setShowAddModal(false);
-                setFormData({
-                  name: '',
-                  gender: '',
-                  phone: '',
-                  email: '',
-                  address: '',
-                  medical_history: '',
-                  remarks: '',
-                  primary_doctor_id: '',
-                  discount_giver_id: '',
-                  referrer_id: ''
-                });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="gradient"
-              color="blue"
-              onClick={handleAddPatient}
-              disabled={loading || !formData.name || !formData.phone || !formData.gender}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Adding...
-                </div>
-              ) : (
-                'Add Patient'
-              )}
-            </Button>
-          </div>
-        </DialogFooter>
       </Dialog>
     </div>
   );

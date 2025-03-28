@@ -14,19 +14,18 @@ import {
   FaUserMd,
   FaTimes,
   FaSave,
-  FaClinicMedical,
+  FaHandHoldingUsd,
   FaNotesMedical,
   FaCalendarAlt,
-  FaHandHoldingUsd,
   FaUserShield,
   FaIdCard,
-  FaCog
+  FaCog,
+  FaBirthdayCake
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import patientApi from '../api/patientApi';
 import doctorApi from '../api/doctorApi';
-import therapyApi from '../api/therapyApi';
 import { settingsApi } from '../api/settingsApi';
 import { Card, CardBody, Checkbox, Select, Option } from "@material-tailwind/react";
 import { format } from 'date-fns';
@@ -41,8 +40,6 @@ export default function PatientManagement() {
   const [doctors, setDoctors] = useState([]);
   const [discountGivers, setDiscountGivers] = useState([]);
   const [referrers, setReferrers] = useState([]);
-  const [therapyTypes, setTherapyTypes] = useState([]);
-  const [selectedTherapies, setSelectedTherapies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,10 +54,12 @@ export default function PatientManagement() {
     phone: '',
     email: '',
     address: '',
+    age: '',
     medical_history: '',
     doctor_id: '',
-    therapy_ids: [],
     remarks: '',
+    diagnosis: '',
+    registration_date: new Date().toISOString().split('T')[0],
     discount_giver_id: '',
     referrer_id: ''
   });
@@ -75,16 +74,6 @@ export default function PatientManagement() {
     }
   };
 
-  const fetchTherapies = async () => {
-    try {
-        const data = await therapyApi.getAllTherapies();
-        setTherapyTypes(data || []);
-    } catch (error) {
-        console.error('Error fetching therapies:', error);
-        toast.error('Failed to fetch therapies');
-    }
-  };
-
   useEffect(() => {
     loadData();
   }, []);
@@ -92,12 +81,11 @@ export default function PatientManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [patientsData, doctorsData, discountGiversData, referrersData, therapyTypesData] = await Promise.all([
+      const [patientsData, doctorsData, discountGiversData, referrersData] = await Promise.all([
         patientApi.getPatients({ searchTerm: '' }), // Get all patients without filtering
         doctorApi.getDoctors(),
         settingsApi.getDiscountGivers(),
-        settingsApi.getReferrers(),
-        therapyApi.getAllTherapies()
+        settingsApi.getReferrers()
       ]);
 
       setAllPatients(patientsData || []); // Store all patients
@@ -105,7 +93,6 @@ export default function PatientManagement() {
       setDoctors(doctorsData || []);
       setDiscountGivers(discountGiversData || []);
       setReferrers(referrersData || []);
-      setTherapyTypes(therapyTypesData || []);
     } catch (error) {
       console.error('Error loading data:', error);
       setError(error.message);
@@ -137,9 +124,12 @@ export default function PatientManagement() {
         email: formData.email,
         gender: formData.gender,
         address: formData.address,
+        age: formData.age,
         primary_doctor_id: formData.doctor_id,
         medical_history: formData.medical_history,
         remarks: formData.remarks,
+        diagnosis: formData.diagnosis,
+        registration_date: formData.registration_date,
         discount_giver_id: formData.discount_giver_id || null,
         referrer_id: formData.referrer_id || null
       };
@@ -159,10 +149,12 @@ export default function PatientManagement() {
         phone: '',
         email: '',
         address: '',
+        age: '',
         medical_history: '',
         doctor_id: '',
-        therapy_ids: [],
         remarks: '',
+        diagnosis: '',
+        registration_date: new Date().toISOString().split('T')[0],
         discount_giver_id: '',
         referrer_id: ''
       });
@@ -204,10 +196,12 @@ export default function PatientManagement() {
       phone: patient.phone,
       email: patient.email,
       address: patient.address,
+      age: patient.age,
       medical_history: patient.medical_history,
       doctor_id: patient.primary_doctor_id,
-      therapy_ids: patient.therapy_ids || [],
       remarks: patient.remarks,
+      diagnosis: patient.diagnosis,
+      registration_date: patient.registration_date,
       discount_giver_id: patient.discount_giver_id || '',
       referrer_id: patient.referrer_id || ''
     });
@@ -225,7 +219,7 @@ export default function PatientManagement() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-          <FaClinicMedical className="mr-2" /> Patient Management
+          Patient Management
         </h1>
         <button
           onClick={() => setShowAddModal(true)}
@@ -337,7 +331,7 @@ export default function PatientManagement() {
                         <div className="flex items-center">
                           <FaIdCard className="text-blue-600 mr-2" />
                           <span className="font-semibold text-gray-900">
-                            {patient.patient_id || `${format(new Date(), 'yyyy-MM-dd')}-${index + 1}`}
+                            {patient.patient_id || 'Pending...'}
                           </span>
                         </div>
                       </td>
@@ -456,10 +450,12 @@ export default function PatientManagement() {
                     phone: '',
                     email: '',
                     address: '',
+                    age: '',
                     medical_history: '',
                     doctor_id: '',
-                    therapy_ids: [],
                     remarks: '',
+                    diagnosis: '',
+                    registration_date: new Date().toISOString().split('T')[0],
                     discount_giver_id: '',
                     referrer_id: ''
                   });
@@ -489,11 +485,27 @@ export default function PatientManagement() {
                   <FaUser className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
                 </div>
 
-                {/* Mobile Number */}
+                {/* Registration Date */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaCalendarAlt className="text-blue-500 mr-2" />
+                    Registration Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.registration_date}
+                    onChange={(e) => setFormData({ ...formData, registration_date: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-blue-50/30 hover:bg-blue-50/50"
+                    required
+                  />
+                  <FaCalendarAlt className="absolute left-4 top-[43px] text-blue-400 group-hover:text-blue-500 transition-colors" />
+                </div>
+
+                {/* Phone */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
                     <FaPhone className="text-green-500 mr-2" />
-                    Mobile Number *
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -506,6 +518,24 @@ export default function PatientManagement() {
                   <FaPhone className="absolute left-4 top-[43px] text-green-400 group-hover:text-green-500 transition-colors" />
                 </div>
 
+                {/* Age */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaBirthdayCake className="text-orange-500 mr-2" />
+                    Age <span className="text-sm text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-orange-50/30 hover:bg-orange-50/50"
+                    min="0"
+                    max="150"
+                    placeholder="Enter patient age"
+                  />
+                  <FaBirthdayCake className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
+                </div>
+
                 {/* Gender */}
                 <div className="relative group">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -515,7 +545,7 @@ export default function PatientManagement() {
                   <select
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50 appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all bg-pink-50/30 hover:bg-pink-50/50"
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
@@ -523,11 +553,6 @@ export default function PatientManagement() {
                     <option value="Other">Other</option>
                   </select>
                   <FaVenusMars className="absolute left-4 top-[43px] text-pink-400 group-hover:text-pink-500 transition-colors" />
-                  <div className="absolute right-4 top-[43px] pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
                 </div>
 
                 {/* Email */}
@@ -546,6 +571,27 @@ export default function PatientManagement() {
                   <FaEnvelope className="absolute left-4 top-[43px] text-indigo-400 group-hover:text-indigo-500 transition-colors" />
                 </div>
 
+                {/* Doctor */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaUserMd className="text-teal-500 mr-2" />
+                    Assigned Doctor
+                  </label>
+                  <select
+                    value={formData.doctor_id}
+                    onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50"
+                  >
+                    <option value="">Select Doctor</option>
+                    {doctors.map(doctor => (
+                      <option key={doctor.id} value={doctor.id}>
+                        {doctor.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FaUserMd className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
+                </div>
+
                 {/* Address */}
                 <div className="md:col-span-2 relative">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
@@ -556,8 +602,8 @@ export default function PatientManagement() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all bg-red-50/30 hover:bg-red-50/50"
-                    maxLength={300}
-                    rows={3}
+                    rows={2}
+                    placeholder="Enter address"
                   />
                   <FaMapMarkerAlt className="absolute left-4 top-[43px] text-red-400 group-hover:text-red-500 transition-colors" />
                 </div>
@@ -572,74 +618,42 @@ export default function PatientManagement() {
                     value={formData.medical_history}
                     onChange={(e) => setFormData({ ...formData, medical_history: e.target.value })}
                     className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50"
-                    rows={4}
+                    rows={3}
+                    placeholder="Enter medical history"
                   />
                   <FaNotesMedical className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
                 </div>
 
-                {/* Treatment List */}
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 mb-4 flex items-center font-medium">
-                    <FaClinicMedical className="text-teal-500 mr-2" />
-                    Available Treatments
+                {/* Diagnosis */}
+                <div className="md:col-span-2 relative">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaUserMd className="text-purple-500 mr-2" />
+                    Diagnosis <span className="text-sm text-gray-500 ml-1">(Optional)</span>
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                    {therapyTypes.map((therapy) => (
-                      <Card key={therapy.id} className="transform hover:scale-105 transition-transform duration-300 shadow-md hover:shadow-lg">
-                        <CardBody>
-                          <div className="flex items-start space-x-4">
-                            <Checkbox
-                              checked={formData.therapy_ids.includes(therapy.id)}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  therapy_ids: isChecked
-                                    ? [...prev.therapy_ids, therapy.id]
-                                    : prev.therapy_ids.filter(id => id !== therapy.id)
-                                }));
-                              }}
-                              className="checked:bg-teal-500"
-                            />
-                            <div>
-                              <h5 className="text-lg font-semibold mb-2 flex items-center">
-                                <FaClinicMedical className="text-teal-500 mr-2" />
-                                {therapy.name}
-                              </h5>
-                              <p className="text-gray-600 text-sm">{therapy.description}</p>
-                              <p className="text-teal-600 font-medium mt-2">৳{therapy.price}</p>
-                            </div>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </div>
+                  <textarea
+                    value={formData.diagnosis}
+                    onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-purple-50/30 hover:bg-purple-50/50"
+                    rows={3}
+                    placeholder="Enter patient diagnosis (optional)"
+                  />
+                  <FaUserMd className="absolute left-4 top-[43px] text-purple-400 group-hover:text-purple-500 transition-colors" />
                 </div>
 
-                {/* Doctor */}
-                <div className="relative group">
+                {/* Remarks */}
+                <div className="md:col-span-2 relative">
                   <label className="block text-gray-700 mb-2 flex items-center font-medium">
-                    <FaUserMd className="text-teal-500 mr-2" />
-                    Assigned Doctor
+                    <FaNotesMedical className="text-orange-500 mr-2" />
+                    Remarks <span className="text-sm text-gray-500 ml-1">(Optional)</span>
                   </label>
-                  <select
-                    value={formData.doctor_id}
-                    onChange={(e) => setFormData({ ...formData, doctor_id: e.target.value })}
-                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all bg-teal-50/30 hover:bg-teal-50/50 appearance-none cursor-pointer"
-                  >
-                    <option value="">Select Doctor</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name}
-                      </option>
-                    ))}
-                  </select>
-                  <FaUserMd className="absolute left-4 top-[43px] text-teal-400 group-hover:text-teal-500 transition-colors" />
-                  <div className="absolute right-4 top-[43px] pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+                  <textarea
+                    value={formData.remarks}
+                    onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-orange-50/30 hover:bg-orange-50/50"
+                    rows={2}
+                    placeholder="Add any additional notes (optional)"
+                  />
+                  <FaNotesMedical className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
                 </div>
 
                 {/* Discount Giver */}
@@ -756,10 +770,12 @@ export default function PatientManagement() {
                       phone: '',
                       email: '',
                       address: '',
+                      age: '',
                       medical_history: '',
                       doctor_id: '',
-                      therapy_ids: [],
                       remarks: '',
+                      diagnosis: '',
+                      registration_date: new Date().toISOString().split('T')[0],
                       discount_giver_id: '',
                       referrer_id: ''
                     });

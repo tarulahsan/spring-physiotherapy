@@ -182,18 +182,30 @@ const Invoice = () => {
   const handleTherapySelection = (therapy) => {
     if (!therapy) return;
 
-    const newTherapy = {
-      therapy_type_id: therapy.id,
-      therapy_name: therapy.name,
-      quantity: 1,
-      days: 1,
-      unit_price: therapy.price,
-      discount_amount: 0,
-      total_amount: therapy.price
-    };
+    // Check if therapy is already selected
+    const existingTherapy = selectedTherapies.find(t => t.therapy_type_id === therapy.id);
+    
+    if (existingTherapy) {
+      // If therapy is already selected, remove it
+      const updatedTherapies = selectedTherapies.filter(t => t.therapy_type_id !== therapy.id);
+      setSelectedTherapies(updatedTherapies);
+      calculateTotals(updatedTherapies);
+    } else {
+      // If therapy is not selected, add it
+      const newTherapy = {
+        therapy_type_id: therapy.id,
+        therapy_name: therapy.name,
+        quantity: 1,
+        days: 1,
+        unit_price: therapy.price,
+        discount_amount: 0,
+        total_amount: therapy.price
+      };
 
-    setSelectedTherapies(prev => [...prev, newTherapy]);
-    calculateTotals([...selectedTherapies, newTherapy]);
+      const updatedTherapies = [...selectedTherapies, newTherapy];
+      setSelectedTherapies(updatedTherapies);
+      calculateTotals(updatedTherapies);
+    }
   };
 
   // Handle therapy removal
@@ -353,6 +365,7 @@ const Invoice = () => {
         </head>
         <body>
           <div class="header">
+            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo" style="max-height: 100px; margin: 0 auto 20px;">` : ''}
             <h1>${settings?.business_name || 'Spring Physiotherapy'}</h1>
             <p>${settings?.address || ''}</p>
             <p>Phone: ${settings?.phone || ''}</p>
@@ -624,40 +637,54 @@ const Invoice = () => {
               Select Therapies
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {therapyTypes.map(therapy => (
-                <div
-                  key={therapy.id}
-                  className={`group relative overflow-hidden rounded-xl transition-all duration-300 ${
-                    selectedTherapies.find(t => t.therapy_type_id === therapy.id)
-                      ? 'border-2 border-green-500 bg-green-50'
-                      : 'border-2 border-gray-200 hover:border-green-300'
-                  }`}
-                >
-                  <div 
-                    className="p-4 cursor-pointer"
-                    onClick={() => handleTherapySelection(therapy)}
+              {therapyTypes.map(therapy => {
+                const isSelected = selectedTherapies.some(t => t.therapy_type_id === therapy.id);
+                return (
+                  <div
+                    key={therapy.id}
+                    className={`group relative overflow-hidden rounded-xl transition-all duration-300 ${
+                      isSelected
+                        ? 'border-2 border-green-500 bg-green-50 shadow-lg transform scale-[1.02]'
+                        : 'border-2 border-gray-200 hover:border-green-300 hover:shadow-md hover:scale-[1.01]'
+                    }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        selectedTherapies.find(t => t.therapy_type_id === therapy.id)
-                          ? 'border-green-500 bg-green-500'
-                          : 'border-gray-300 group-hover:border-green-300'
-                      }`}>
-                        {selectedTherapies.find(t => t.therapy_type_id === therapy.id) && (
-                          <FaCheckCircle className="text-white text-sm" />
-                        )}
+                    <div 
+                      className="p-4 cursor-pointer relative"
+                      onClick={() => handleTherapySelection(therapy)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'border-green-500 bg-green-500 scale-110'
+                            : 'border-gray-300 group-hover:border-green-300'
+                        }`}>
+                          {isSelected && (
+                            <FaCheckCircle className="text-white text-sm animate-scale-in" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className={`font-medium transition-colors ${
+                            isSelected ? 'text-green-700' : 'text-gray-900'
+                          }`}>{therapy.name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{therapy.description}</p>
+                          <p className={`text-lg font-semibold mt-2 transition-colors ${
+                            isSelected ? 'text-green-600' : 'text-gray-700'
+                          }`}>
+                            {settings?.currency || 'BDT'} {therapy.price}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{therapy.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{therapy.description}</p>
-                        <p className="text-lg font-semibold text-green-600 mt-2">
-                          {settings?.currency || 'BDT'} {therapy.price}
-                        </p>
-                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <div className="text-green-500 bg-green-50 rounded-full p-1">
+                            <FaCheckCircle className="text-lg" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -760,7 +787,7 @@ const Invoice = () => {
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
                 <span>Due Amount:</span>
-                <span className="text-red-600">{settings?.currency || 'BDT'} {currentInvoice.due_amount}</span>
+                <span className="text-red-600">{settings?.currency || '৳'} {currentInvoice.due_amount}</span>
               </div>
             </div>
           </div>
