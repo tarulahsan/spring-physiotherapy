@@ -37,6 +37,7 @@ const Invoice = () => {
   const [currentInvoice, setCurrentInvoice] = useState({
     invoice_date: format(new Date(), 'yyyy-MM-dd'),
     patient_id: '',
+    patient_display_id: '',
     patient_name: '',
     patient_phone: '',
     doctor_id: '',
@@ -115,7 +116,8 @@ const Invoice = () => {
   const handlePatientSelect = (patient) => {
     setCurrentInvoice(prev => ({
       ...prev,
-      patient_id: patient.patient_id,
+      patient_id: patient.id, // Use UUID for database operations
+      patient_display_id: patient.patient_id, // Store formatted ID for display
       patient_name: patient.name,
       patient_phone: patient.phone,
       doctor_id: patient.doctor_id || ''
@@ -170,6 +172,10 @@ const Invoice = () => {
             <div>
               <label className="text-sm text-gray-600">Phone:</label>
               <div className="font-medium">{currentInvoice.patient_phone}</div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Patient ID:</label>
+              <div className="font-medium">{currentInvoice.patient_display_id}</div>
             </div>
           </div>
         </div>
@@ -478,7 +484,7 @@ const Invoice = () => {
               <h2>Patient Information</h2>
               <div class="info-item">
                 <span class="info-label">Patient ID:</span>
-                <span class="info-value">${currentInvoice.patient_id}</span>
+                <span class="info-value">${currentInvoice.patient_display_id}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Name:</span>
@@ -568,6 +574,7 @@ const Invoice = () => {
       setCurrentInvoice({
         invoice_date: format(new Date(), 'yyyy-MM-dd'),
         patient_id: '',
+        patient_display_id: '',
         patient_name: '',
         patient_phone: '',
         doctor_id: '',
