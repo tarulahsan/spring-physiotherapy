@@ -459,7 +459,7 @@ export const updateDailyRecord = async (recordId, updates) => {
       .from('daily_therapy_records')
       .update(updates)
       .eq('id', recordId)
-      .select()
+      .select('id, therapy_date, therapy_time, patient_id, therapy_type_id')
       .single();
 
     if (updateError) {
