@@ -223,17 +223,17 @@ const DailyRecords = () => {
   }, [selectedDate]);
 
   const handleSearch = async (value) => {
-    setSearchTerm(value);
-    if (!value.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
     try {
+      setSearchTerm(value);
+      
+      if (!value.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
       setSearchLoading(true);
       const results = await patientApi.searchPatients(value.trim());
-      console.log('Search results:', results);
-      setSearchResults(results || []);
+      setSearchResults(Array.isArray(results) ? results : []);
     } catch (error) {
       console.error('Error searching patients:', error);
       toast.error('Failed to search patients');
@@ -244,7 +244,10 @@ const DailyRecords = () => {
   };
 
   const handlePatientSelect = async (patient) => {
-    if (!patient) return;
+    if (!patient?.id) {
+      console.error('Invalid patient selected');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -268,7 +271,7 @@ const DailyRecords = () => {
           formattedDate
         );
 
-        setAvailableTherapies(therapies || []);
+        setAvailableTherapies(Array.isArray(therapies) ? therapies : []);
         
         if (!therapies || therapies.length === 0) {
           toast.info('No active therapies available for this patient');
@@ -504,42 +507,53 @@ const DailyRecords = () => {
           Search Patient
         </h2>
         <div className="relative">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by name, phone, or ID..."
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-          {searchLoading && (
-            <div className="absolute right-3 top-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          <div className="flex items-center">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search by name, phone, or ID..."
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {searchLoading && (
+              <div className="absolute right-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              </div>
+            )}
+          </div>
+
+          {/* Search Results Dropdown */}
+          {searchResults.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border overflow-hidden">
+              <div className="max-h-60 overflow-y-auto">
+                {searchResults.map((patient) => (
+                  <div
+                    key={patient.id}
+                    onClick={() => handlePatientSelect(patient)}
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <div className="font-medium">{patient.name || 'No Name'}</div>
+                        <div className="text-sm text-gray-500">
+                          {patient.phone || 'No Phone'} • ID: {patient.id}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No Results Message */}
+          {searchTerm && !searchLoading && searchResults.length === 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg border p-3 text-center text-gray-500">
+              No patients found
             </div>
           )}
         </div>
-
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="mt-2 bg-white rounded-lg shadow-lg border max-h-60 overflow-y-auto">
-            {searchResults.map((patient) => (
-              <div
-                key={patient.id}
-                onClick={() => handlePatientSelect(patient)}
-                className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-              >
-                <div className="flex items-center gap-3">
-                  <FaUser className="text-gray-400" />
-                  <div>
-                    <div className="font-medium">{patient.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {patient.phone} • ID: {patient.id}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Selected Patient Info Card */}
@@ -661,41 +675,10 @@ const DailyRecords = () => {
                 </div>
               </div>
             </div>
-
-            {/* Medical Information */}
-            <div className="md:col-span-2 space-y-4">
-              <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Medical Information
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-start text-gray-700">
-                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center mt-1">
-                    <FaNotesMedical className="text-teal-600" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-500">Medical History</p>
-                    <p className="font-medium whitespace-pre-wrap">
-                      {selectedPatient.medical_history || 'No medical history recorded'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start text-gray-700">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mt-1">
-                    <FaNotesMedical className="text-gray-600" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-500">Remarks</p>
-                    <p className="font-medium whitespace-pre-wrap">
-                      {selectedPatient.remarks || 'No remarks recorded'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}
+
       {/* Therapy Selection Section */}
       {selectedPatient && (
         <div className="mb-8">
