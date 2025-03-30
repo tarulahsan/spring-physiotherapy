@@ -405,13 +405,16 @@ const DailyRecords = () => {
         )
       );
 
-      // Refresh the records to ensure we have the latest data
-      await loadDailyRecords();
-
+      // Close modal and clear state
       setShowEditModal(false);
       setEditingRecord(null);
       setTherapyTime('');
+      
+      // Show success message
       toast.success('Time updated successfully');
+
+      // Refresh the records to ensure we have the latest data
+      await loadDailyRecords();
     } catch (error) {
       console.error('Error updating time:', error);
       toast.error('Failed to update time');
