@@ -400,7 +400,13 @@ const DailyRecords = () => {
       setDailyRecords(prevRecords => 
         prevRecords.map(r => 
           r.id === record.id 
-            ? { ...r, therapy_time: formattedTime }
+            ? { 
+                ...r, 
+                therapy_time: formattedTime,
+                // Keep existing relationships
+                patients: r.patients,
+                therapy_types: r.therapy_types
+              }
             : r
         )
       );

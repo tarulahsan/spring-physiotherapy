@@ -454,12 +454,19 @@ export const updateDailyRecord = async (recordId, updates) => {
 
     console.log('Found existing record:', existingRecord);
 
+    // Map therapy_type_id to therapy_id if present
+    const mappedUpdates = { ...updates };
+    if (mappedUpdates.therapy_type_id) {
+      mappedUpdates.therapy_id = mappedUpdates.therapy_type_id;
+      delete mappedUpdates.therapy_type_id;
+    }
+
     // Then update the record
     const { data: updatedData, error: updateError } = await supabase
       .from('daily_therapy_records')
-      .update(updates)
+      .update(mappedUpdates)
       .eq('id', recordId)
-      .select('id, therapy_date, therapy_time, patient_id, therapy_type_id')
+      .select('id, therapy_date, therapy_time, patient_id, therapy_id')
       .single();
 
     if (updateError) {
@@ -472,8 +479,41 @@ export const updateDailyRecord = async (recordId, updates) => {
       throw new Error('Failed to update record');
     }
 
-    console.log('Successfully updated record:', updatedData);
-    return updatedData;
+    // Get the updated record with all relationships
+    const { data: fullRecord, error: fetchError } = await supabase
+      .from('daily_therapy_records')
+      .select(`
+        id,
+        therapy_date,
+        therapy_time,
+        patient_id,
+        therapy_id,
+        patients!fk_daily_therapy_records_patient (
+          id,
+          name,
+          phone,
+          email,
+          age,
+          gender,
+          address
+        ),
+        therapy_types!fk_daily_therapy_records_therapy (
+          id,
+          name,
+          description,
+          price
+        )
+      `)
+      .eq('id', recordId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching updated record:', fetchError);
+      return updatedData; // Return basic update if fetch fails
+    }
+
+    console.log('Successfully updated record:', fullRecord || updatedData);
+    return fullRecord || updatedData;
   } catch (error) {
     console.error('Error in updateDailyRecord:', error);
     throw error;
