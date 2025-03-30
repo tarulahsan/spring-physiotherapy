@@ -54,7 +54,7 @@ export const getDailyRecords = async (date) => {
     
     const { data: records, error } = await supabase
       .from('daily_therapy_records')
-      .select('id, therapy_date, therapy_time, patient_id, therapy_type_id')
+      .select('*')
       .eq('therapy_date', formattedDate)
       .order('therapy_time', { ascending: true });
 
@@ -322,36 +322,30 @@ export const getPatientTherapyHistory = async (patientId, page = 1, pageSize = 5
 
 export const updateDailyRecord = async (recordId, updates) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('daily_therapy_records')
-      .update({ therapy_time: updates.therapy_time })
+      .update(updates)
       .eq('id', recordId);
 
     if (error) throw error;
-    return { success: true };
+    return true;
   } catch (error) {
-    console.error('Error updating time:', error);
+    console.error('Error updating daily record:', error);
     throw error;
   }
 }
 
 export const deleteDailyRecord = async (recordId) => {
   try {
-    console.log('Deleting daily record:', recordId);
-    
     const { error } = await supabase
       .from('daily_therapy_records')
       .delete()
       .eq('id', recordId);
 
-    if (error) {
-      console.error('Error deleting daily record:', error);
-      throw error;
-    }
-    
-    console.log('Deleted daily record:', recordId);
+    if (error) throw error;
+    return true;
   } catch (error) {
-    console.error('Error in deleteDailyRecord:', error);
+    console.error('Error deleting daily record:', error);
     throw error;
   }
 }

@@ -376,20 +376,16 @@ const DailyRecords = () => {
     try {
       setLoading(true);
       const formattedTime = therapyTime.length === 5 ? `${therapyTime}:00` : therapyTime;
-
+      
       await updateDailyRecord(record.id, {
         therapy_time: formattedTime
       });
-
-      // Close modal and clear state
+      
       setShowEditModal(false);
       setEditingRecord(null);
       setTherapyTime('');
       
-      // Show success message
       toast.success('Time updated successfully');
-
-      // Refresh the records
       await loadDailyRecords();
     } catch (error) {
       console.error('Error updating time:', error);
@@ -412,12 +408,12 @@ const DailyRecords = () => {
     setShowEditModal(true);
   };
 
-  const handleDelete = async (recordId) => {
+  const handleDelete = async (record) => {
     try {
       setLoading(true);
-      await deleteDailyRecord(recordId);
+      await deleteDailyRecord(record.id);
       toast.success('Record deleted successfully');
-      loadDailyRecords();
+      await loadDailyRecords();
     } catch (error) {
       console.error('Error deleting record:', error);
       toast.error('Failed to delete record');
