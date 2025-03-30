@@ -375,21 +375,24 @@ const DailyRecords = () => {
     }
   };
 
-  const handleTimeUpdate = async (record, newTime) => {
+  const handleTimeUpdate = async (record) => {
     try {
       setLoading(true);
-      console.log('Updating time:', { recordId: record.id, newTime });
+      console.log('Updating time:', { recordId: record.id, newTime: therapyTime });
+
+      // Format time to HH:mm:ss
+      const formattedTime = therapyTime.length === 5 ? `${therapyTime}:00` : therapyTime;
 
       // Update the record with new time
       const updatedRecord = await updateDailyRecord(record.id, {
-        therapy_time: newTime
+        therapy_time: formattedTime
       });
 
       // Update the records in state
       setDailyRecords(prevRecords => 
         prevRecords.map(r => 
           r.id === record.id 
-            ? { ...r, therapy_time: newTime }
+            ? { ...r, therapy_time: formattedTime }
             : r
         )
       );
@@ -475,7 +478,7 @@ const DailyRecords = () => {
         </Button>
         <Button
           color="blue"
-          onClick={() => handleTimeUpdate(editingRecord, therapyTime)}
+          onClick={() => handleTimeUpdate(editingRecord)}
           disabled={!therapyTime || loading}
         >
           {loading ? 'Updating...' : 'Update'}

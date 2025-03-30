@@ -435,7 +435,19 @@ export const updateDailyRecord = async (recordId, updates) => {
   try {
     console.log('Updating daily record:', { recordId, updates });
     
-    // First update the record
+    // First check if the record exists
+    const { data: existingRecord, error: checkError } = await supabase
+      .from('daily_therapy_records')
+      .select('id')
+      .eq('id', recordId)
+      .single();
+
+    if (checkError || !existingRecord) {
+      console.error('Record not found:', recordId);
+      throw new Error('No record found to update');
+    }
+
+    // Then update the record
     const { data: updatedData, error: updateError } = await supabase
       .from('daily_therapy_records')
       .update(updates)
@@ -467,7 +479,7 @@ export const updateDailyRecord = async (recordId, updates) => {
     }
 
     if (!updatedData || updatedData.length === 0) {
-      throw new Error('No record found to update');
+      throw new Error('Failed to update record');
     }
 
     return updatedData[0];
