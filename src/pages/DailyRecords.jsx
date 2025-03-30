@@ -377,39 +377,12 @@ const DailyRecords = () => {
 
   const handleTimeUpdate = async (record) => {
     try {
-      if (!record?.id) {
-        console.error('Invalid record:', record);
-        toast.error('Invalid record');
-        return;
-      }
-
       setLoading(true);
-      console.log('Updating time:', { recordId: record.id, newTime: therapyTime });
-
-      // Format time to HH:mm:ss
       const formattedTime = therapyTime.length === 5 ? `${therapyTime}:00` : therapyTime;
 
-      // Update the record with new time
-      const updatedRecord = await updateDailyRecord(record.id, {
+      await updateDailyRecord(record.id, {
         therapy_time: formattedTime
       });
-
-      console.log('Record updated:', updatedRecord);
-
-      // Update the records in state
-      setDailyRecords(prevRecords => 
-        prevRecords.map(r => 
-          r.id === record.id 
-            ? { 
-                ...r, 
-                therapy_time: formattedTime,
-                // Keep existing relationships
-                patients: r.patients,
-                therapy_types: r.therapy_types
-              }
-            : r
-        )
-      );
 
       // Close modal and clear state
       setShowEditModal(false);
@@ -419,7 +392,7 @@ const DailyRecords = () => {
       // Show success message
       toast.success('Time updated successfully');
 
-      // Refresh the records to ensure we have the latest data
+      // Refresh the records
       await loadDailyRecords();
     } catch (error) {
       console.error('Error updating time:', error);
