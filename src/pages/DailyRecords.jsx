@@ -377,6 +377,12 @@ const DailyRecords = () => {
 
   const handleTimeUpdate = async (record) => {
     try {
+      if (!record?.id) {
+        console.error('Invalid record:', record);
+        toast.error('Invalid record');
+        return;
+      }
+
       setLoading(true);
       console.log('Updating time:', { recordId: record.id, newTime: therapyTime });
 
@@ -388,6 +394,8 @@ const DailyRecords = () => {
         therapy_time: formattedTime
       });
 
+      console.log('Record updated:', updatedRecord);
+
       // Update the records in state
       setDailyRecords(prevRecords => 
         prevRecords.map(r => 
@@ -396,6 +404,9 @@ const DailyRecords = () => {
             : r
         )
       );
+
+      // Refresh the records to ensure we have the latest data
+      await loadDailyRecords();
 
       setShowEditModal(false);
       setEditingRecord(null);
@@ -410,6 +421,12 @@ const DailyRecords = () => {
   };
 
   const handleEdit = (record) => {
+    if (!record?.id) {
+      console.error('Invalid record:', record);
+      toast.error('Invalid record');
+      return;
+    }
+
     console.log('Setting therapy time in modal:', record.therapy_time);
     setEditingRecord(record);
     setTherapyTime(record.therapy_time || '');

@@ -438,14 +438,21 @@ export const updateDailyRecord = async (recordId, updates) => {
     // First check if the record exists
     const { data: existingRecord, error: checkError } = await supabase
       .from('daily_therapy_records')
-      .select('id')
+      .select('*')
       .eq('id', recordId)
       .single();
 
-    if (checkError || !existingRecord) {
+    if (checkError) {
+      console.error('Error checking record:', checkError);
+      throw new Error('Failed to check record existence');
+    }
+
+    if (!existingRecord) {
       console.error('Record not found:', recordId);
       throw new Error('No record found to update');
     }
+
+    console.log('Found existing record:', existingRecord);
 
     // Then update the record
     const { data: updatedData, error: updateError } = await supabase
@@ -456,6 +463,9 @@ export const updateDailyRecord = async (recordId, updates) => {
         id,
         therapy_date,
         therapy_time,
+        patient_id,
+        therapy_type_id,
+        status,
         patients!fk_daily_therapy_records_patient (
           id,
           name,
@@ -471,18 +481,21 @@ export const updateDailyRecord = async (recordId, updates) => {
           description,
           price
         )
-      `);
+      `)
+      .single();
 
     if (updateError) {
       console.error('Error updating daily record:', updateError);
       throw updateError;
     }
 
-    if (!updatedData || updatedData.length === 0) {
+    if (!updatedData) {
+      console.error('No data returned after update');
       throw new Error('Failed to update record');
     }
 
-    return updatedData[0];
+    console.log('Successfully updated record:', updatedData);
+    return updatedData;
   } catch (error) {
     console.error('Error in updateDailyRecord:', error);
     throw error;
