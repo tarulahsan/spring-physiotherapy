@@ -444,30 +444,33 @@ export const updateDailyRecord = async (recordId, updates) => {
         id,
         therapy_date,
         therapy_time,
-        patients (
+        patients!fk_daily_therapy_records_patient (
           id,
           name,
-          patient_id,
           phone,
-          gender
+          email,
+          age,
+          gender,
+          address
         ),
-        therapy_types (
+        therapy_types!fk_daily_therapy_records_therapy (
           id,
-          name
+          name,
+          description,
+          price
         )
-      `)
-      .single();
+      `);
 
     if (updateError) {
       console.error('Error updating daily record:', updateError);
       throw updateError;
     }
 
-    if (!updatedData) {
+    if (!updatedData || updatedData.length === 0) {
       throw new Error('No record found to update');
     }
 
-    return updatedData;
+    return updatedData[0];
   } catch (error) {
     console.error('Error in updateDailyRecord:', error);
     throw error;

@@ -15,7 +15,13 @@ import {
   FaHeartbeat,
   FaStethoscope,
   FaBandAid,
-  FaNotesMedical
+  FaNotesMedical,
+  FaIdCard,
+  FaMapMarkerAlt,
+  FaEnvelope,
+  FaHandHoldingUsd,
+  FaUserShield,
+  FaTimes
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -435,57 +441,42 @@ const DailyRecords = () => {
     }
   };
 
-  const handleEdit = (record) => {
-    setEditingRecord(record);
-    // Convert therapy_time to HH:mm format for input
-    const timeStr = record.therapy_time || '';
-    const [hours, minutes] = timeStr.split(':');
-    const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-    setTherapyTime(formattedTime);
-    setShowEditModal(true);
-  };
-
-  const handleUpdate = async () => {
-    if (!therapyTime) {
-      toast.error('Please set a therapy time');
-      return;
-    }
-
+  const handleTimeUpdate = async (record, newTime) => {
     try {
       setLoading(true);
-      console.log('Updating record with time:', {
-        recordId: editingRecord.id,
-        therapyTime
+      console.log('Updating time:', { recordId: record.id, newTime });
+
+      // Update the record with new time
+      const updatedRecord = await updateDailyRecord(record.id, {
+        therapy_time: newTime
       });
 
-      // First update in the database
-      const updatedRecord = await updateDailyRecord(editingRecord.id, {
-        therapy_time: therapyTime
-      });
-
-      if (!updatedRecord) {
-        throw new Error('Failed to update record');
-      }
-
-      console.log('Updated record from database:', updatedRecord);
-
-      // Then update the local state with the database response
+      // Update the records in state
       setDailyRecords(prevRecords => 
-        prevRecords.map(record => 
-          record.id === editingRecord.id ? updatedRecord : record
+        prevRecords.map(r => 
+          r.id === record.id 
+            ? { ...r, therapy_time: newTime }
+            : r
         )
       );
 
-      toast.success('Record updated successfully');
+      setShowEditModal(false);
       setEditingRecord(null);
       setTherapyTime('');
-      setShowEditModal(false);
+      toast.success('Time updated successfully');
     } catch (error) {
-      console.error('Error updating record:', error);
-      toast.error('Failed to update record');
+      console.error('Error updating time:', error);
+      toast.error('Failed to update time');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = (record) => {
+    console.log('Setting therapy time in modal:', record.therapy_time);
+    setEditingRecord(record);
+    setTherapyTime(record.therapy_time || '');
+    setShowEditModal(true);
   };
 
   const handleDelete = async (recordId) => {
@@ -512,6 +503,52 @@ const DailyRecords = () => {
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
+
+  const renderEditModal = () => (
+    <Dialog open={showEditModal} handler={() => setShowEditModal(false)}>
+      <DialogHeader>Update Therapy Time</DialogHeader>
+      <DialogBody>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Therapy Time
+            </label>
+            <input
+              type="time"
+              value={therapyTime}
+              onChange={(e) => {
+                console.log('Setting therapy time in modal:', e.target.value);
+                setTherapyTime(e.target.value);
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <Button
+          variant="text"
+          color="gray"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingRecord(null);
+            setTherapyTime('');
+          }}
+          className="mr-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          color="blue"
+          onClick={() => handleTimeUpdate(editingRecord, therapyTime)}
+          disabled={!therapyTime || loading}
+        >
+          {loading ? 'Updating...' : 'Update'}
+        </Button>
+      </DialogFooter>
+    </Dialog>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -922,46 +959,7 @@ const DailyRecords = () => {
         )}
       </div>
 
-      {/* Edit Record Modal */}
-      <Dialog
-        open={showEditModal}
-        handler={() => setShowEditModal(false)}
-        className="bg-white p-6 rounded-xl max-w-md mx-auto"
-      >
-        <h2 className="text-xl font-bold mb-4">Edit Therapy Time</h2>
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-2">New Time</label>
-          <input
-            type="time"
-            value={therapyTime}
-            onChange={(e) => {
-              console.log('Setting therapy time in modal:', e.target.value);
-              setTherapyTime(e.target.value);
-            }}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
-        </div>
-        <div className="flex justify-end gap-4">
-          <Button
-            color="gray"
-            onClick={() => {
-              setShowEditModal(false);
-              setTherapyTime('');
-            }}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            color="blue"
-            onClick={handleUpdate}
-            disabled={!therapyTime || loading}
-          >
-            Update
-          </Button>
-        </div>
-      </Dialog>
+      {renderEditModal()}
     </div>
   );
 };
