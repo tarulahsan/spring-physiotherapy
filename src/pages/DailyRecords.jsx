@@ -290,14 +290,11 @@ const DailyRecords = () => {
   const loadDailyRecords = async () => {
     try {
       setLoading(true);
-      console.log('Loading daily records for date:', selectedDate);
-      const records = await getDailyRecords(format(selectedDate, 'yyyy-MM-dd'));
-      console.log('Loaded daily records:', records);
-      setDailyRecords(records || []);
+      const records = await getDailyRecords(selectedDate);
+      setDailyRecords(records);
     } catch (error) {
-      console.error('Error loading daily records:', error);
-      toast.error('Failed to load daily records');
-      setDailyRecords([]);
+      console.error('Error loading records:', error);
+      toast.error('Failed to load records');
     } finally {
       setLoading(false);
     }

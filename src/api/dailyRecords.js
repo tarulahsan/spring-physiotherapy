@@ -50,129 +50,18 @@ export const addDailyRecord = async (patientId, therapyTypeId, therapyDate, ther
 
 export const getDailyRecords = async (date) => {
   try {
-    console.log('Fetching records for date:', date);
-    
     const formattedDate = new Date(date).toISOString().split('T')[0];
-    console.log('Formatted date:', formattedDate);
-
-    // First get all daily records with basic info
+    
     const { data: records, error } = await supabase
       .from('daily_therapy_records')
-      .select(`
-        id,
-        therapy_date,
-        therapy_time,
-        patients!fk_daily_therapy_records_patient (
-          id,
-          name,
-          phone,
-          email,
-          age,
-          gender,
-          address,
-          primary_doctor_id,
-          discount_giver_id,
-          referrer_id
-        ),
-        therapy_types!fk_daily_therapy_records_therapy (
-          id,
-          name,
-          description,
-          price,
-          status
-        )
-      `)
+      .select('id, therapy_date, therapy_time, patient_id, therapy_type_id')
       .eq('therapy_date', formattedDate)
       .order('therapy_time', { ascending: true });
 
-    if (error) {
-      console.error('Error details:', error);
-      throw error;
-    }
-
-    // Get additional details for each patient
-    const enhancedRecords = await Promise.all(records.map(async (record) => {
-      try {
-        // Get active invoices for the patient
-        const { data: invoices, error: invoiceError } = await supabase
-          .from('invoices')
-          .select(`
-            id,
-            total_amount,
-            paid_amount,
-            status,
-            invoice_items!left (
-              id,
-              days,
-              quantity,
-              therapy_type_id,
-              therapy_types!left (
-                id,
-                name,
-                description,
-                price
-              )
-            )
-          `)
-          .eq('patient_id', record.patients.id)
-          .in('status', ['paid', 'partially_paid'])
-          .order('created_at', { ascending: false });
-
-        if (invoiceError) {
-          console.error('Error fetching invoices:', invoiceError);
-          return {
-            ...record,
-            due_amount: 0,
-            other_therapies: []
-          };
-        }
-
-        // Calculate total due amount
-        const totalDue = (invoices || []).reduce((sum, invoice) => {
-          if (invoice.status === 'partially_paid') {
-            return sum + (invoice.total_amount - (invoice.paid_amount || 0));
-          }
-          return sum;
-        }, 0);
-
-        // Get other active therapies
-        const otherTherapies = (invoices || []).flatMap(invoice => 
-          (invoice.invoice_items || [])
-            .filter(item => 
-              item?.therapy_type_id !== record.therapy_types.id &&
-              item?.therapy_types
-            )
-            .map(item => ({
-              ...item.therapy_types,
-              days: item.days,
-              quantity: item.quantity
-            }))
-        );
-
-        // Remove duplicates
-        const uniqueTherapies = Array.from(
-          new Map(otherTherapies.map(t => [t.id, t])).values()
-        );
-
-        return {
-          ...record,
-          due_amount: totalDue,
-          other_therapies: uniqueTherapies
-        };
-      } catch (error) {
-        console.error('Error enhancing record:', error);
-        return {
-          ...record,
-          due_amount: 0,
-          other_therapies: []
-        };
-      }
-    }));
-
-    console.log('Fetched daily records:', enhancedRecords);
-    return enhancedRecords;
+    if (error) throw error;
+    return records;
   } catch (error) {
-    console.error('Full error object:', error);
+    console.error('Error fetching records:', error);
     throw error;
   }
 }
