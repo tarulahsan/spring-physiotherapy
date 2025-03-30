@@ -213,23 +213,14 @@ const DailyRecords = () => {
   const [discountGivers, setDiscountGivers] = useState([]);
   const [referrers, setReferrers] = useState([]);
   const [editingRecord, setEditingRecord] = useState(null);
-  const [allPatients, setAllPatients] = useState([]);
-  const [filteredPatients, setFilteredPatients] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
   useEffect(() => {
     loadDailyRecords();
-    loadPatients();
     loadInitialData();
   }, [selectedDate]);
-
-  useEffect(() => {
-    if (selectedPatient) {
-      loadAvailableTherapies();
-    }
-  }, [selectedPatient, selectedDate]);
 
   const handleSearch = async (value) => {
     setSearchTerm(value);
@@ -241,6 +232,7 @@ const DailyRecords = () => {
     try {
       setSearchLoading(true);
       const results = await patientApi.searchPatients(value.trim());
+      console.log('Search results:', results);
       setSearchResults(results || []);
     } catch (error) {
       console.error('Error searching patients:', error);
@@ -251,16 +243,42 @@ const DailyRecords = () => {
     }
   };
 
-  const loadPatients = async () => {
+  const handlePatientSelect = async (patient) => {
+    if (!patient) return;
+    
     try {
       setLoading(true);
-      const { data, error } = await patientApi.getPatients();
-      if (error) throw error;
-      setAllPatients(data || []);
+      console.log('Selected patient:', patient);
+
+      // Get full patient details
+      const fullPatient = await patientApi.getPatientById(patient.id);
+      if (!fullPatient) {
+        throw new Error('Failed to load patient details');
+      }
+
+      setSelectedPatient(fullPatient);
+      setSearchTerm('');
+      setSearchResults([]);
+      
+      // Load available therapies for the selected patient
+      if (selectedDate) {
+        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+        const therapies = await getAvailableTherapies(
+          fullPatient.id,
+          formattedDate
+        );
+
+        setAvailableTherapies(therapies || []);
+        
+        if (!therapies || therapies.length === 0) {
+          toast.info('No active therapies available for this patient');
+        }
+      }
     } catch (error) {
-      console.error('Error loading patients:', error);
-      toast.error('Failed to load patients');
-      setAllPatients([]);
+      console.error('Error selecting patient:', error);
+      toast.error('Failed to load patient details');
+      setSelectedPatient(null);
+      setAvailableTherapies([]);
     } finally {
       setLoading(false);
     }
@@ -282,43 +300,6 @@ const DailyRecords = () => {
     }
   };
 
-  const loadAvailableTherapies = async () => {
-    try {
-      setLoading(true);
-      console.log('Loading therapies for patient:', selectedPatient.id);
-      
-      if (!selectedDate) {
-        console.log('No date selected');
-        return;
-      }
-
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Getting therapies for date:', formattedDate);
-
-      const therapies = await getAvailableTherapies(
-        selectedPatient.id,
-        formattedDate
-      );
-
-      console.log('Loaded therapies:', therapies);
-      if (!therapies || therapies.length === 0) {
-        console.log('No therapies found');
-        setAvailableTherapies([]);
-        setSelectedTherapies([]);
-        toast.info('No active therapies available for this patient');
-      } else {
-        setAvailableTherapies(therapies);
-      }
-    } catch (error) {
-      console.error('Error loading therapies:', error);
-      toast.error('Failed to load available therapies');
-      setAvailableTherapies([]);
-      setSelectedTherapies([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadInitialData = async () => {
     try {
       setLoading(true);
@@ -335,56 +316,6 @@ const DailyRecords = () => {
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePatientSelect = async (patient) => {
-    try {
-      setLoading(true);
-      console.log('Selected patient:', patient);
-
-      // Get full patient details
-      const fullPatient = await patientApi.getPatientById(patient.id);
-      if (!fullPatient) {
-        throw new Error('Failed to load patient details');
-      }
-      console.log('Full patient details:', fullPatient);
-
-      setSelectedPatient(fullPatient);
-      setSearchTerm('');
-      setSearchResults([]);
-      
-      // Load available therapies for the selected patient
-      if (selectedDate) {
-        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        console.log('Loading therapies for patient:', {
-          patientId: fullPatient.id,
-          date: formattedDate
-        });
-
-        const therapies = await getAvailableTherapies(
-          fullPatient.id,
-          formattedDate
-        );
-
-        console.log('Loaded therapies:', therapies);
-        setAvailableTherapies(therapies || []);
-        
-        if (!therapies || therapies.length === 0) {
-          console.log('No therapies found for patient');
-          toast.info('No active therapies available for this patient');
-        }
-      } else {
-        console.log('No date selected');
-        toast.warning('Please select a date first');
-      }
-    } catch (error) {
-      console.error('Error selecting patient:', error);
-      toast.error('Failed to load patient details');
-      setSelectedPatient(null);
-      setAvailableTherapies([]);
     } finally {
       setLoading(false);
     }
@@ -554,91 +485,61 @@ const DailyRecords = () => {
     <div className="container mx-auto px-4 py-8">
       {/* Calendar Section */}
       <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <FaCalendarAlt className="text-blue-500" />
+          Select Date
+        </h2>
         <DatePicker
           selected={selectedDate}
           onChange={date => setSelectedDate(date)}
           dateFormat="MMMM d, yyyy"
-          className="w-full p-4 rounded-xl shadow-lg bg-gray-50/80 backdrop-blur-sm border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          wrapperClassName="w-full"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
-      {/* Patient Selection Section */}
+      {/* Patient Search Section */}
       <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <h2 className="text-2xl font-semibold flex items-center">
-            <FaSearch className="mr-2 text-blue-500" />
-            Search Patient
-          </h2>
-        </div>
-
+        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <FaSearch className="text-blue-500" />
+          Search Patient
+        </h2>
         <div className="relative">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search by name, phone, or ID..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 
-                focus:ring-blue-500 focus:border-transparent pl-12 pr-4 bg-gray-50"
-            />
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FaSearch className="text-gray-400" />
-            </div>
-          </div>
-
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search by name, phone, or ID..."
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
           {searchLoading && (
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            <div className="absolute right-3 top-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
             </div>
           )}
+        </div>
 
-          {searchResults.length > 0 && (
-            <div className="absolute w-full mt-2 bg-white rounded-xl shadow-lg overflow-hidden z-50 border border-gray-200">
-              {searchResults.map((patient) => (
-                <div
-                  key={patient.id}
-                  onClick={() => handlePatientSelect(patient)}
-                  className="p-4 hover:bg-gray-50 cursor-pointer border-b last:border-b-0
-                    transition-colors duration-150"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 
-                        flex items-center justify-center">
-                        <FaUser className="text-blue-500" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="font-semibold text-gray-900">{patient.name}</h3>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <FaPhone className="mr-1 text-green-500" />
-                            {patient.phone}
-                          </span>
-                          {patient.patient_id && (
-                            <span className="flex items-center gap-1">
-                              <FaIdCard className="mr-1 text-blue-500" />
-                              {patient.patient_id}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-gray-400 hover:text-blue-500 transition-colors">
-                      <FaChevronRight />
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <div className="mt-2 bg-white rounded-lg shadow-lg border max-h-60 overflow-y-auto">
+            {searchResults.map((patient) => (
+              <div
+                key={patient.id}
+                onClick={() => handlePatientSelect(patient)}
+                className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+              >
+                <div className="flex items-center gap-3">
+                  <FaUser className="text-gray-400" />
+                  <div>
+                    <div className="font-medium">{patient.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {patient.phone} • ID: {patient.id}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {searchTerm && searchResults.length === 0 && !searchLoading && (
-            <div className="absolute w-full mt-2 bg-white rounded-xl shadow-lg p-4 text-center border border-gray-200">
-              <p className="text-gray-500">No patients found</p>
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Selected Patient Info Card */}
