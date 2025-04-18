@@ -702,59 +702,33 @@ const PatientProfile = () => {
         </div>
       </div>
 
-      {/* Patient Profile */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-lg">
-            <FaUser size={24} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {/* Conditional Rendering for Name - Input field will be here */} 
-              {isEditing ? (
-                <input 
-                  type="text"
-                  name="name"
-                  value={formData.name || ''}
-                  onChange={handleInputChange}
-                  className="text-2xl font-bold text-gray-800 border-b-2 border-blue-300 focus:outline-none focus:border-blue-500 bg-transparent"
-                  placeholder="Patient Name"
-                />
-              ) : (
-                patient.name
-              )}
-            </h1>
-            <p className="text-sm text-gray-500">Patient ID: {patient.patient_id}</p>
-          </div>
-        </div>
-        {/* Edit/Save/Cancel Buttons */} 
-        <div className="absolute top-4 right-4 flex space-x-2">
-          {!isEditing ? (
+      {/* Edit/Save/Cancel Buttons - Moved up for better visibility */}
+      <div className="flex justify-end mb-4">
+        {!isEditing ? (
+          <button
+            onClick={handleEditClick}
+            className="px-4 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transform hover:scale-105 transition-all duration-200 shadow-md"
+          >
+            Edit Profile
+          </button>
+        ) : (
+          <div className="flex space-x-3">
             <button
-              onClick={handleEditClick}
-              className="px-3 py-1 bg-blue-500 text-white text-xs font-medium rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              onClick={handleSaveClick}
+              disabled={loading}
+              className="px-4 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transform hover:scale-105 transition-all duration-200 shadow-md flex items-center"
             >
-              Edit Profile
+              {loading ? <span className="flex items-center"><div className="mr-2 h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>Saving...</span> : 'Save Changes'}
             </button>
-          ) : (
-            <>
-              <button
-                onClick={handleSaveClick}
-                disabled={loading} // Disable save button while loading
-                className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50"
-              >
-                {loading ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={handleCancelClick}
-                disabled={loading} // Disable cancel button while loading
-                className="px-3 py-1 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              onClick={handleCancelClick}
+              disabled={loading}
+              className="px-4 py-1.5 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50 transform hover:scale-105 transition-all duration-200 shadow-md"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Payment Modal */}
