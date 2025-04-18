@@ -390,7 +390,20 @@ const ManualInvoice = () => {
     const canvas = await html2canvas(invoice, {
       scale: 2,
       useCORS: true,
-      logging: false
+      logging: false,
+      windowWidth: 1000, // Set a standard width
+      windowHeight: 1414, // A4 ratio at 72dpi
+      scrollX: 0,
+      scrollY: 0,
+      // Use onclone to modify the captured content before rendering
+      onclone: (document) => {
+        // Make sure we capture the full height
+        const clonedInvoice = document.querySelector('#invoice-content');
+        if (clonedInvoice) {
+          clonedInvoice.style.height = 'auto';
+          clonedInvoice.style.overflow = 'visible';
+        }
+      }
     });
     
     // Create a PDF document
@@ -408,8 +421,39 @@ const ManualInvoice = () => {
     const imgWidth = pdfWidth;
     const imgHeight = imgWidth / ratio;
     
-    // Add the image to the PDF
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    // If the image height exceeds the page height, we'll need multiple pages
+    if (imgHeight > pdfHeight) {
+      let heightLeft = imgHeight;
+      let position = 0;
+      let page = 0;
+      
+      while (heightLeft > 0) {
+        // Add a new page for subsequent pages
+        if (page > 0) {
+          pdf.addPage();
+        }
+        
+        // Add the image to the PDF, cropping to fit the page
+        pdf.addImage(
+          imgData, 
+          'PNG', 
+          0, // x position
+          0 - position, // y position (negative to show the "next part" of the image)
+          imgWidth, 
+          imgHeight
+        );
+        
+        // Reduce the height left to render
+        heightLeft -= pdfHeight;
+        // Move the position for the next page
+        position += pdfHeight;
+        // Increment page count
+        page++;
+      }
+    } else {
+      // If it fits on one page, just add it normally
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    }
     
     return pdf;
   };
@@ -861,7 +905,7 @@ const ManualInvoice = () => {
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Invoice Preview</h3>
               
-              <div ref={invoiceRef} className="p-4 border border-gray-200 rounded bg-white">
+              <div ref={invoiceRef} id="invoice-content" className="p-4 border border-gray-200 rounded bg-white">
                 {/* Invoice Header */}
                 <div className="text-center mb-6">
                   {settings?.logo_url && (
@@ -891,10 +935,7 @@ const ManualInvoice = () => {
                   </div>
                 </div>
                 
-                {/* Invoice Title */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center mb-4">
-                  <h3 className="text-xl font-bold text-blue-800">MANUAL INVOICE</h3>
-                </div>
+                {/* Invoice Title - Removed as requested */}
                 
                 {/* Invoice Details */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
@@ -985,7 +1026,7 @@ const ManualInvoice = () => {
                 
                 {/* Footer */}
                 <div className="mt-8 pt-4 border-t border-gray-200 text-center text-gray-500 text-sm">
-                  <p>This is a manual invoice and does not affect patient records or billing system.</p>
+                  <p>This invoice does not affect patient records or billing system.</p>
                   <p className="mt-2">Thank you for your business!</p>
                 </div>
               </div>
