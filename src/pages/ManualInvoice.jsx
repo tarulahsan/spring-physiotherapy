@@ -20,7 +20,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import manualInvoicesApi from '../api/manualInvoices';
+import { saveManualInvoice, getManualInvoices, getManualInvoiceById, deleteManualInvoice, getManualInvoiceDownloadUrl } from '../api/manualInvoices';
 import patientApi from '../api/patientApi';
 import doctorApi from '../api/doctorApi';
 import { settingsApi } from '../api/settingsApi';
@@ -54,7 +54,7 @@ const ManualInvoice = () => {
     patient_display_id: '',
     patient_name: '',
     patient_phone: '',
-    doctor_id: null,
+    doctor_id: '',
     discount_amount: 0,
     items: [],
     subtotal: 0,
@@ -111,7 +111,7 @@ const ManualInvoice = () => {
   const loadManualInvoices = async () => {
     try {
       setLoadingInvoices(true);
-      const invoices = await manualInvoiceApi.getManualInvoices({
+      const invoices = await getManualInvoices({
         startDate: dateFilter.startDate,
         endDate: dateFilter.endDate
       });
@@ -346,7 +346,7 @@ const ManualInvoice = () => {
       const pdfBlob = pdf.output('blob');
       
       // Save the invoice PDF to the database
-      await manualInvoiceApi.saveManualInvoice(currentInvoice, pdfBlob);
+      await saveManualInvoice(currentInvoice, pdfBlob);
       
       toast.success('Manual invoice created successfully');
       
@@ -358,7 +358,7 @@ const ManualInvoice = () => {
         patient_display_id: '',
         patient_name: '',
         patient_phone: '',
-        doctor_id: null,
+        doctor_id: '',
         discount_amount: 0,
         items: [],
         subtotal: 0,
@@ -678,7 +678,7 @@ const ManualInvoice = () => {
   const handleDownloadInvoice = async (invoice) => {
     try {
       setLoading(true);
-      const downloadUrl = await manualInvoicesApi.getManualInvoiceDownloadUrl(invoice.file_path);
+      const downloadUrl = await getManualInvoiceDownloadUrl(invoice.file_path);
       
       // Create an anchor element for downloading
       const link = document.createElement('a');
@@ -706,7 +706,7 @@ const ManualInvoice = () => {
     
     try {
       setLoadingInvoices(true);
-      await manualInvoiceApi.deleteManualInvoice(id);
+      await deleteManualInvoice(id);
       toast.success('Invoice deleted successfully');
       
       // Reload the list of manual invoices
