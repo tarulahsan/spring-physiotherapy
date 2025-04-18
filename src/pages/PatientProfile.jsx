@@ -108,10 +108,12 @@ const PatientProfile = () => {
       setLoading(true);
       setError(null);
       const data = await patientApi.getPatientById(id);
+      console.log('Patient data fetched from API:', data); // Log the data received directly from the API
       if (!data) {
         throw new Error('Patient not found');
       }
       setPatient(data);
+      setFormData({ ...data, date_of_birth: data?.date_of_birth ? format(parseISO(data.date_of_birth), 'yyyy-MM-dd') : '' });
       await Promise.all([
         loadTherapyHistory(1),
         loadAvailableTherapiesForPatient(),
@@ -246,6 +248,8 @@ const PatientProfile = () => {
   useEffect(() => {
     if (id) loadPatient();
   }, [id]);
+
+  console.log('Patient state before render:', patient); // Log the patient state just before rendering
 
   if (loading) {
     return (
