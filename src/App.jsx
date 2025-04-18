@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import DueManagement from './pages/DueManagement';
 import DailyRecords from './pages/DailyRecords';
 import Therapy from './pages/Therapy';
+import DiagnosisDebug from './pages/DiagnosisDebug';
 
 // Components
 import Navbar from './components/Navbar';
@@ -62,6 +63,10 @@ function App() {
           <Route
             path="/patients/:id"
             element={<PrivateRoute component={PatientProfile} requiredRole="admin" />}
+          />
+          <Route
+            path="/diagnosis-debug/:id"
+            element={<DiagnosisDebug />}
           />
           <Route
             path="/invoice"
