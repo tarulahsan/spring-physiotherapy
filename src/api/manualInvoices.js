@@ -54,13 +54,14 @@ const saveManualInvoice = async (invoiceData, pdfBlob) => {
     const fileName = `manual-invoice-${invoiceNumber}.pdf`;
     const filePath = `manual-invoices/${fileName}`;
     
+    // Upload the PDF to the existing 'files' bucket
     const { data: fileData, error: uploadError } = await supabase.storage
-      .from('invoices')
+      .from('files') // Use the existing bucket name 'files' instead of 'invoices'
       .upload(filePath, pdfBlob, {
         contentType: 'application/pdf',
         upsert: false
       });
-    
+      
     if (uploadError) throw uploadError;
     
     // Save the invoice record in the database
@@ -155,7 +156,7 @@ const deleteManualInvoice = async (id) => {
     
     // Delete the file from storage
     const { error: storageError } = await supabase.storage
-      .from('invoices')
+      .from('files') // Use the existing bucket name 'files' instead of 'invoices'
       .remove([invoice.file_path]);
     
     if (storageError) throw storageError;
@@ -183,7 +184,7 @@ const deleteManualInvoice = async (id) => {
 const getManualInvoiceDownloadUrl = async (filePath) => {
   try {
     const { data, error } = await supabase.storage
-      .from('invoices')
+      .from('files') // Use the existing bucket name 'files' instead of 'invoices'
       .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
     
     if (error) throw error;
