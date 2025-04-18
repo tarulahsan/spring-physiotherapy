@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import DueManagement from './pages/DueManagement';
 import DailyRecords from './pages/DailyRecords';
 import Therapy from './pages/Therapy';
+import MedicalNotes from './pages/MedicalNotes';
 
 // Components
 import Navbar from './components/Navbar';
@@ -86,6 +87,10 @@ function App() {
           <Route
             path="/manual-invoice"
             element={<PrivateRoute component={ManualInvoice} requiredRole="admin" />}
+          />
+          <Route
+            path="/medical-notes"
+            element={<PrivateRoute component={MedicalNotes} requiredRole="admin" />}
           />
 
           {/* Default redirect */}
