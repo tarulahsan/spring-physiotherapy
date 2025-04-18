@@ -66,6 +66,7 @@ export const patientApi = {
         .from('patients')
         .select(`
           *,
+          diagnosis, /* Explicitly select diagnosis field */
           primary_doctor:primary_doctor_id (id, name),
           discount_giver:discount_giver_id (id, name),
           referrer:referrer_id (id, name)
