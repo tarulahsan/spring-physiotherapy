@@ -452,9 +452,7 @@ const PatientProfile = () => {
                         placeholder="Diagnosis details"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
-                        {patient && patient.diagnosis ? patient.diagnosis : 'N/A'}
-                      </dd>
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.diagnosis || 'N/A'}</dd>
                     )}
                   </div>
 
