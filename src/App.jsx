@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import PatientManagement from './pages/PatientManagement';
 import PatientProfile from './pages/PatientProfile';
 import Invoice from './pages/Invoice';
+import ManualInvoice from './pages/ManualInvoice';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import DueManagement from './pages/DueManagement';
@@ -81,6 +82,10 @@ function App() {
           <Route
             path="/therapy"
             element={<PrivateRoute component={Therapy} requiredRole="admin" />}
+          />
+          <Route
+            path="/manual-invoice"
+            element={<PrivateRoute component={ManualInvoice} requiredRole="admin" />}
           />
 
           {/* Default redirect */}

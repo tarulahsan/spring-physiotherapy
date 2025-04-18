@@ -10,7 +10,8 @@ import {
   FaSignOutAlt,
   FaMoneyBillWave,
   FaClinicMedical,
-  FaCalendarCheck
+  FaCalendarCheck,
+  FaFileAlt
 } from 'react-icons/fa';
 
 const NavItem = ({ to, icon: Icon, color, label }) => {
@@ -58,6 +59,7 @@ export default function Navbar() {
     { to: '/daily-records', icon: FaCalendarCheck, color: 'emerald', label: 'Daily Records' },
     { to: '/therapy', icon: FaClinicMedical, color: 'indigo', label: 'Therapy' },
     { to: '/invoice', icon: FaFileInvoiceDollar, color: 'purple', label: 'Invoice' },
+    { to: '/manual-invoice', icon: FaFileAlt, color: 'pink', label: 'Manual Invoice' },
     { to: '/due-management', icon: FaMoneyBillWave, color: 'yellow', label: 'Due Management' },
     { to: '/settings', icon: FaCog, color: 'gray', label: 'Settings' },
   ];
