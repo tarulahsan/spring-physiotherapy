@@ -115,8 +115,19 @@ const PatientProfile = () => {
       if (!data) {
         throw new Error('Patient not found');
       }
-      setPatient(data);
-      setFormData({ ...data, date_of_birth: data?.date_of_birth ? format(parseISO(data.date_of_birth), 'yyyy-MM-dd') : '' });
+      
+      // CRITICAL FIX: Ensure diagnosis field exists even if API doesn't return it
+      const patientWithDiagnosis = {
+        ...data,
+        diagnosis: data.diagnosis || '' // Force the diagnosis field to exist even if null/undefined
+      };
+      
+      setPatient(patientWithDiagnosis);
+      setFormData({ 
+        ...patientWithDiagnosis, 
+        date_of_birth: data?.date_of_birth ? format(parseISO(data.date_of_birth), 'yyyy-MM-dd') : '' 
+      });
+      
       await Promise.all([
         loadTherapyHistory(1),
         loadAvailableTherapiesForPatient(),
