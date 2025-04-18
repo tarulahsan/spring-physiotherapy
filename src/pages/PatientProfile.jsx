@@ -89,13 +89,16 @@ const PatientProfile = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isEditing, setIsEditing] = useState(false); // State for edit mode
   const [formData, setFormData] = useState({}); // State for form data during edit
+  const [isSaving, setIsSaving] = useState(false);
 
-  const calculateAge = (dob) => {
-    if (!dob) return 'N/A';
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 'N/A';
     try {
-      return differenceInYears(new Date(), parseISO(dob));
-    } catch (e) {
-      console.error("Error calculating age:", e);
+      const dob = parseISO(dateOfBirth);
+      const age = differenceInYears(new Date(), dob);
+      return age;
+    } catch (error) {
+      console.error('Error calculating age:', error);
       return 'N/A';
     }
   };
@@ -190,30 +193,47 @@ const PatientProfile = () => {
   };
 
   const handleSaveClick = async () => {
-    console.log('Saving data:', formData); // Debugging
-    if (!formData.name || !formData.phone) {
-      toast.error('Patient Name and Phone are required.');
-      return;
-    }
-    // Optional: Add more validation here
-
     try {
-      setLoading(true); // Indicate loading state
-      // Ensure date_of_birth is not an empty string before sending
-      const dataToSend = { ...formData };
-      if (dataToSend.date_of_birth === '') {
-        dataToSend.date_of_birth = null;
+      setIsSaving(true);
+
+      // Check for required fields
+      if (!formData.name) {
+        toast.error('Patient name is required');
+        setIsSaving(false);
+        return;
       }
 
-      const updatedPatient = await patientApi.updatePatient(id, dataToSend);
-      setPatient(updatedPatient); // Update local patient state
-      setIsEditing(false); // Exit edit mode
-      toast.success('Patient details updated successfully!');
-    } catch (err) {
-      console.error('Error updating patient:', err);
-      toast.error(`Failed to update patient: ${err.message || 'Please try again.'}`);
+      // Log what we're sending to the API
+      console.log('Updating patient with data:', formData);
+      
+      const { error } = await patientApi.updatePatient(patient.id, {
+        name: formData.name,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        medical_history: formData.medical_history,
+        diagnosis: formData.diagnosis,
+        remarks: formData.remarks
+      });
+
+      if (error) {
+        toast.error(`Failed to update: ${error.message}`);
+      } else {
+        // Update the patient state with the form data
+        setPatient({ ...patient, ...formData });
+        toast.success('Patient information updated successfully');
+        setIsEditing(false);
+        
+        // Force reload to ensure we get the latest data
+        loadPatient();
+      }
+    } catch (error) {
+      toast.error(`Update failed: ${error.message}`);
+      console.error('Update error:', error);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -410,7 +430,7 @@ const PatientProfile = () => {
                         name="medical_history"
                         value={formData.medical_history || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
                         placeholder="Relevant medical history"
                       />
                     ) : (
@@ -428,11 +448,13 @@ const PatientProfile = () => {
                         name="diagnosis"
                         value={formData.diagnosis || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
                         placeholder="Diagnosis details"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.diagnosis || 'N/A'}</dd>
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">
+                        {patient && patient.diagnosis ? patient.diagnosis : 'N/A'}
+                      </dd>
                     )}
                   </div>
 
@@ -446,7 +468,7 @@ const PatientProfile = () => {
                         name="remarks"
                         value={formData.remarks || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
                         placeholder="Additional remarks"
                       />
                     ) : (
