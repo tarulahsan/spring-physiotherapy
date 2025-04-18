@@ -20,7 +20,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import manualInvoicesApi from '../api/manualInvoices';
+import * as manualInvoicesApi from '../api/manualInvoices';
 import patientApi from '../api/patientApi';
 import doctorApi from '../api/doctorApi';
 import { settingsApi } from '../api/settingsApi';

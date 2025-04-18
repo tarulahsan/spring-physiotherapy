@@ -208,15 +208,3 @@ export {
   deleteManualInvoice,
   getManualInvoiceDownloadUrl
 };
-
-// Also provide default export for backward compatibility
-const manualInvoicesApi = {
-  generateInvoiceNumber,
-  saveManualInvoice,
-  getManualInvoices,
-  getManualInvoiceById,
-  deleteManualInvoice,
-  getManualInvoiceDownloadUrl
-};
-
-export default manualInvoicesApi;
