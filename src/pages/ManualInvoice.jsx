@@ -384,95 +384,314 @@ const ManualInvoice = () => {
 
   // Generate PDF from the invoice
   const generatePDF = async () => {
-    const invoice = invoiceRef.current;
+    // Get the invoice content
+    const invoiceElement = invoiceRef.current;
     
-    // Capture the invoice as an image
-    const canvas = await html2canvas(invoice, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      windowWidth: 1000, // Set a standard width
-      windowHeight: 1414, // A4 ratio at 72dpi
-      scrollX: 0,
-      scrollY: 0,
-      // Use onclone to modify the captured content before rendering
-      onclone: (document) => {
-        // Make sure we capture the full height
-        const clonedInvoice = document.querySelector('#invoice-content');
-        if (clonedInvoice) {
-          clonedInvoice.style.height = 'auto';
-          clonedInvoice.style.overflow = 'visible';
-        }
-      }
-    });
-    
-    // Create a PDF document
+    // Add text elements programmatically
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: 'portrait', 
       unit: 'mm',
       format: 'a4'
     });
     
-    // Calculate the width and height to fit the A4 page
-    const imgData = canvas.toDataURL('image/png');
+    // Define PDF dimensions
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    const ratio = canvas.width / canvas.height;
-    const imgWidth = pdfWidth;
-    const imgHeight = imgWidth / ratio;
+    const margin = 10; // mm
+    const contentWidth = pdfWidth - (margin * 2);
     
-    // If the image height exceeds the page height, we'll need multiple pages
-    if (imgHeight > pdfHeight) {
-      let heightLeft = imgHeight;
-      let position = 0;
-      let page = 0;
+    // Define starting position
+    let yPos = margin;
+    
+    // Business Information - Header
+    const businessName = settings?.business_name || 'Spring Physiotherapy';
+    const businessAddress = settings?.business_address || '123 Main St, City';
+    const businessPhone = settings?.business_phone || '';
+    const businessEmail = settings?.business_email || '';
+    
+    // Add logo if available
+    if (settings?.logo_url) {
+      const logoImg = new Image();
+      logoImg.src = settings?.logo_url;
       
-      while (heightLeft > 0) {
-        // Add a new page for subsequent pages
-        if (page > 0) {
+      // Wait for the image to load
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve; // Continue even if logo fails to load
+      });
+      
+      // Add logo centered at the top
+      try {
+        const logoWidth = 30; // mm
+        const logoHeight = (logoWidth * logoImg.height) / logoImg.width;
+        const logoX = (pdfWidth - logoWidth) / 2;
+        
+        pdf.addImage(logoImg, 'PNG', logoX, yPos, logoWidth, logoHeight);
+        yPos += logoHeight + 5; // Add space after logo
+      } catch (e) {
+        console.error('Error adding logo:', e);
+        // Continue without logo
+      }
+    }
+    
+    // Add business name and address
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(businessName, pdfWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(businessAddress, pdfWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    
+    // Add contact info if available
+    if (businessPhone || businessEmail) {
+      const contactInfo = [];
+      if (businessPhone) contactInfo.push(`Phone: ${businessPhone}`);
+      if (businessEmail) contactInfo.push(`Email: ${businessEmail}`);
+      
+      pdf.text(contactInfo.join(' | '), pdfWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+    } else {
+      yPos += 5;
+    }
+    
+    // Add a separator line
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margin, yPos, pdfWidth - margin, yPos);
+    yPos += 5;
+    
+    // Invoice Details - Grid layout
+    pdf.setDrawColor(150, 150, 150);
+    pdf.setFillColor(250, 250, 250);
+    
+    // Customer details (left side)
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Bill To:', margin, yPos + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(currentInvoice.patient_name || 'Patient Name', margin, yPos + 10);
+    pdf.text(currentInvoice.patient_phone || 'Phone', margin, yPos + 15);
+    if (currentInvoice.patient_display_id) {
+      pdf.text(`ID: ${currentInvoice.patient_display_id}`, margin, yPos + 20);
+    }
+    
+    // Invoice details (right side)
+    const invoiceDate = format(new Date(currentInvoice.invoice_date), 'MMM dd, yyyy');
+    const invoiceNumber = `Invoice #: ${currentInvoice.invoice_number || 'MINV-XXXXXXXX'}`;
+    const paymentStatus = currentInvoice.status === 'paid' ? 'PAID' : 
+                         currentInvoice.status === 'partially_paid' ? 'PARTIALLY PAID' : 'DUE';
+    
+    pdf.text(`Date: ${invoiceDate}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+    pdf.text(invoiceNumber, pdfWidth - margin, yPos + 10, { align: 'right' });
+    
+    // Add payment status
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 150, 0); // Green for payment status
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(paymentStatus, pdfWidth - margin, yPos + 20, { align: 'right' });
+    pdf.setTextColor(0, 0, 0); // Reset text color
+    
+    yPos += 30; // Move down after customer and invoice info
+    
+    // Items Table
+    const tableTop = yPos;
+    const tableHeadHeight = 8;
+    const tableRowHeight = 8;
+    const colWidths = {
+      item: contentWidth * 0.45,
+      qty: contentWidth * 0.1,
+      days: contentWidth * 0.1,
+      price: contentWidth * 0.15,
+      total: contentWidth * 0.2
+    };
+    
+    // Table Header
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(margin, yPos, contentWidth, tableHeadHeight, 'F');
+    
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    
+    let xPos = margin;
+    pdf.text('Item', xPos + 2, yPos + 5.5);
+    xPos += colWidths.item;
+    
+    pdf.text('Qty', xPos + 2, yPos + 5.5, { align: 'center' });
+    xPos += colWidths.qty;
+    
+    pdf.text('Days', xPos + 2, yPos + 5.5, { align: 'center' });
+    xPos += colWidths.days;
+    
+    pdf.text('Price', xPos + 2, yPos + 5.5, { align: 'right' });
+    xPos += colWidths.price;
+    
+    pdf.text('Total', xPos + colWidths.total - 2, yPos + 5.5, { align: 'right' });
+    
+    yPos += tableHeadHeight;
+    
+    // Table Rows
+    pdf.setFont('helvetica', 'normal');
+    
+    if (selectedTherapies.length === 0) {
+      // No items
+      pdf.setFontSize(9);
+      pdf.text('No items added', pdfWidth / 2, yPos + 5, { align: 'center' });
+      yPos += tableRowHeight;
+    } else {
+      // Add each therapy item
+      for (const therapy of selectedTherapies) {
+        // Check if we need a new page
+        if (yPos > pdfHeight - 60) {
           pdf.addPage();
+          yPos = margin;
         }
         
-        // Add the image to the PDF, cropping to fit the page
-        pdf.addImage(
-          imgData, 
-          'PNG', 
-          0, // x position
-          0 - position, // y position (negative to show the "next part" of the image)
-          imgWidth, 
-          imgHeight
-        );
+        xPos = margin;
         
-        // Reduce the height left to render
-        heightLeft -= pdfHeight;
-        // Move the position for the next page
-        position += pdfHeight;
-        // Increment page count
-        page++;
+        // Item name
+        pdf.text(therapy.name, xPos + 2, yPos + 5);
+        xPos += colWidths.item;
+        
+        // Quantity
+        pdf.text(therapy.quantity.toString(), xPos + (colWidths.qty / 2), yPos + 5, { align: 'center' });
+        xPos += colWidths.qty;
+        
+        // Days
+        pdf.text(therapy.days.toString(), xPos + (colWidths.days / 2), yPos + 5, { align: 'center' });
+        xPos += colWidths.days;
+        
+        // Price
+        const priceText = `${settings?.currency || '৳'} ${therapy.price}`;
+        pdf.text(priceText, xPos + colWidths.price - 2, yPos + 5, { align: 'right' });
+        xPos += colWidths.price;
+        
+        // Total
+        const totalText = `${settings?.currency || '৳'} ${therapy.total_price}`;
+        pdf.text(totalText, xPos + colWidths.total - 2, yPos + 5, { align: 'right' });
+        
+        yPos += tableRowHeight;
+        
+        // Add a light separator line
+        pdf.setDrawColor(230, 230, 230);
+        pdf.line(margin, yPos, margin + contentWidth, yPos);
       }
-    } else {
-      // If it fits on one page, just add it normally
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
     }
+    
+    // Table bottom line
+    pdf.setDrawColor(180, 180, 180);
+    pdf.line(margin, yPos, margin + contentWidth, yPos);
+    yPos += 5;
+    
+    // Summary section
+    const summaryWidth = contentWidth * 0.4;
+    const summaryX = pdfWidth - margin - summaryWidth;
+    
+    // Summary Rows
+    pdf.text('Subtotal:', summaryX, yPos + 5);
+    pdf.text(`${settings?.currency || '৳'} ${currentInvoice.subtotal}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+    yPos += 7;
+    
+    // Discount, if any
+    if (currentInvoice.discount_amount > 0) {
+      pdf.setTextColor(255, 0, 0); // Red for discount
+      pdf.text('Discount:', summaryX, yPos + 5);
+      pdf.text(`- ${settings?.currency || '৳'} ${currentInvoice.discount_amount}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+      pdf.setTextColor(0, 0, 0); // Reset text color
+      yPos += 7;
+    }
+    
+    // Total
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(summaryX, yPos, pdfWidth - margin, yPos);
+    yPos += 5;
+    
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Total:', summaryX, yPos + 5);
+    pdf.text(`${settings?.currency || '৳'} ${currentInvoice.total_amount}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+    yPos += 7;
+    
+    // Paid amount
+    if (currentInvoice.paid_amount > 0) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 150, 0); // Green for paid amount
+      pdf.text('Paid Amount:', summaryX, yPos + 5);
+      pdf.text(`${settings?.currency || '৳'} ${currentInvoice.paid_amount}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+      pdf.setTextColor(0, 0, 0); // Reset text color
+      yPos += 7;
+    }
+    
+    // Due amount
+    if (currentInvoice.due_amount > 0) {
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(255, 0, 0); // Red for due amount
+      pdf.text('Due Amount:', summaryX, yPos + 5);
+      pdf.text(`${settings?.currency || '৳'} ${currentInvoice.due_amount}`, pdfWidth - margin, yPos + 5, { align: 'right' });
+      pdf.setTextColor(0, 0, 0); // Reset text color
+      yPos += 10;
+    }
+    
+    // Notes
+    if (currentInvoice.notes) {
+      // Check if we need a new page
+      if (yPos > pdfHeight - 50) {
+        pdf.addPage();
+        yPos = margin;
+      }
+      
+      pdf.setDrawColor(180, 180, 180);
+      pdf.line(margin, yPos, margin + contentWidth, yPos);
+      yPos += 5;
+      
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Notes:', margin, yPos + 5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(currentInvoice.notes, margin, yPos + 12);
+      yPos += 20;
+    }
+    
+    // Footer
+    // Check if we need a new page
+    if (yPos > pdfHeight - 30) {
+      pdf.addPage();
+      yPos = margin;
+    }
+    
+    pdf.setDrawColor(200, 200, 200);
+    pdf.line(margin, pdfHeight - 25, pdfWidth - margin, pdfHeight - 25);
+    
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('This invoice does not affect patient records or billing system.', pdfWidth / 2, pdfHeight - 18, { align: 'center' });
+    pdf.text('Thank you for your business!', pdfWidth / 2, pdfHeight - 12, { align: 'center' });
     
     return pdf;
   };
 
-  // Handle invoice download
+  // Handle downloading the invoice
   const handleDownloadInvoice = async (invoice) => {
     try {
-      setLoadingInvoices(true);
-      const downloadUrl = await manualInvoiceApi.getManualInvoiceDownloadUrl(invoice.file_path);
+      setLoading(true);
+      const downloadUrl = await manualInvoicesApi.getManualInvoiceDownloadUrl(invoice.file_path);
       
-      // Create a temporary link element and trigger the download
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = invoice.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Create an anchor element for downloading
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = invoice.file_name || 'manual-invoice.pdf';
+      link.target = '_blank';
+      
+      // Append to the body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error('Error downloading invoice:', error);
+      toast.error('Error downloading invoice: ' + error.message);
       toast.error('Failed to download invoice');
     } finally {
       setLoadingInvoices(false);
@@ -936,6 +1155,7 @@ const ManualInvoice = () => {
                 </div>
                 
                 {/* Invoice Title - Removed as requested */}
+                {/* DO NOT add any title here - it will be handled in the PDF generation */}
                 
                 {/* Invoice Details */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
