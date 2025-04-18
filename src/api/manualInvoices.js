@@ -187,10 +187,7 @@ const getManualInvoiceDownloadUrl = async (filePath) => {
     const { data, error } = await supabase.storage
       .from('avatars') // Use the existing bucket name 'avatars'
       .createSignedUrl(filePath, 60 * 60, { 
-        disposition: 'attachment', // Force download behavior
-        transform: {  // No transforms needed for PDF
-          quality: 100
-        }
+        disposition: 'attachment' // Force download behavior
       });
     
     if (error) throw error;
