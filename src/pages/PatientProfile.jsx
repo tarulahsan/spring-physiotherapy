@@ -438,7 +438,7 @@ const PatientProfile = () => {
                     )}
                   </div>
 
-                  {/* Diagnosis */}
+                  {/* DIAGNOSIS FIELD - UPDATED APRIL 18, 2025 */}
                   <div className="md:col-span-1">
                     <dt className="text-sm font-medium text-gray-500 flex items-center">
                       <FaClinicMedical className="mr-2 text-lime-500" /> Diagnosis
