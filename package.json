@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dummy": "echo 'Trigger rebuild'"
   },
   "dependencies": {
     "@material-tailwind/react": "^2.1.8",
