@@ -22,14 +22,14 @@ const NavItem = ({ to, icon: Icon, color, label }) => {
   return (
     <Link
       to={to}
-      className={`flex items-center px-6 py-3 rounded-lg mb-2 transition-all duration-200 transform hover:scale-105 ${
+      className={`flex items-center px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-200 transform hover:scale-105 ${
         isActive
           ? `bg-${color}-100 text-${color}-600`
           : `text-gray-600 hover:bg-${color}-50 hover:text-${color}-500`
       }`}
     >
-      <Icon className={`w-6 h-6 mr-4 ${isActive ? `text-${color}-500` : `text-${color}-400`}`} />
-      <span className="text-sm font-medium">{label}</span>
+      <Icon className={`w-5 h-5 mr-3 ${isActive ? `text-${color}-500` : `text-${color}-400`}`} />
+      <span className="text-xs font-medium">{label}</span>
     </Link>
   );
 };
@@ -75,7 +75,7 @@ export default function Navbar() {
   const [firstWord, ...restWords] = businessName.split(' ');
 
   return (
-    <nav className="bg-white w-72 min-h-screen shadow-lg sticky top-0">
+    <nav className="bg-white w-72 min-h-screen shadow-lg sticky top-0 flex flex-col">
       {/* Logo Section */}
       <div className="flex items-center justify-center py-6 border-b border-gray-100">
         <FaClinicMedical className="w-8 h-8 text-blue-500 mr-3" />
@@ -87,8 +87,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Navigation Items */}
-      <div className="p-4">
+      {/* Navigation Items - Now with max height and scrolling */}
+      <div className="p-4 flex-1 overflow-y-auto pb-16"> {/* Added pb-16 to ensure space for sign out button */}
         {navItems.map((item) => (
           <NavItem
             key={item.to}
@@ -101,7 +101,7 @@ export default function Navbar() {
       </div>
 
       {/* Sign Out Button */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
+      <div className="p-4 border-t border-gray-100">
         <button
           onClick={signOut}
           className="flex items-center w-full px-6 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-all duration-200 transform hover:scale-105"
