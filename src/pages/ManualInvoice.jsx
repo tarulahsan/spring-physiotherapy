@@ -477,7 +477,7 @@ const ManualInvoice = () => {
                          currentInvoice.status === 'partially_paid' ? 'PARTIALLY PAID' : 'DUE';
     
     pdf.text(`Date: ${invoiceDate}`, pdfWidth - margin, yPos + 5, { align: 'right' });
-    pdf.text(invoiceNumber, pdfWidth - margin, yPos + 10, { align: 'right' });
+    // pdf.text(invoiceNumber, pdfWidth - margin, yPos + 10, { align: 'right' }); // Removed Invoice number from PDF
     
     // Add payment status
     pdf.setFontSize(12);
