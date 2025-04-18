@@ -11,7 +11,8 @@ import {
   FaMoneyBillWave,
   FaClinicMedical,
   FaCalendarCheck,
-  FaFileAlt
+  FaFileAlt,
+  FaNotesMedical
 } from 'react-icons/fa';
 
 const NavItem = ({ to, icon: Icon, color, label }) => {
@@ -56,6 +57,7 @@ export default function Navbar() {
   const navItems = [
     { to: '/', icon: FaHome, color: 'blue', label: 'Dashboard' },
     { to: '/patients', icon: FaUsers, color: 'green', label: 'Patients' },
+    { to: '/medical-notes', icon: FaNotesMedical, color: 'lime', label: 'Medical Notes' },
     { to: '/daily-records', icon: FaCalendarCheck, color: 'emerald', label: 'Daily Records' },
     { to: '/therapy', icon: FaClinicMedical, color: 'indigo', label: 'Therapy' },
     { to: '/invoice', icon: FaFileInvoiceDollar, color: 'purple', label: 'Invoice' },
