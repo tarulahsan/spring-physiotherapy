@@ -316,27 +316,37 @@ const PatientProfile = () => {
             <div className="p-4">
               {/* Basic Info Grid - Conditionally Rendered */}
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">
-
-                  {/* Patient ID (Read-only) */}
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaIdCard className="mr-2 text-teal-500" /> Patient ID
-                    </dt>
-                    <dd className="mt-1 text-sm text-gray-900">{patient.patient_id || 'N/A'}</dd>
+                <dl className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-blue-100">
+                  {/* 3D Effect Inner Wrapper */}
+                  <div className="md:col-span-2 mb-2">
+                    <h3 className="text-lg font-bold text-gray-800 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Patient Information</h3>
                   </div>
 
-                  {/* Gender */}
+                  {/* Patient ID (Read-only) - Enhanced 3D style */}
                   <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaUser className="mr-2 text-pink-500" /> Gender
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-teal-100 rounded-lg mr-2 shadow-sm">
+                        <FaIdCard className="text-teal-600" />
+                      </div>
+                      Patient ID
+                    </dt>
+                    <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">{patient.patient_id || 'N/A'}</dd>
+                  </div>
+
+                  {/* Gender - Enhanced 3D style */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-pink-100 rounded-lg mr-2 shadow-sm">
+                        <FaUser className="text-pink-600" />
+                      </div>
+                      Gender
                     </dt>
                     {isEditing ? (
                       <select
                         name="gender"
                         value={formData.gender || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
                       >
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
@@ -344,14 +354,17 @@ const PatientProfile = () => {
                         <option value="Other">Other</option>
                       </select>
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900">{patient.gender || 'N/A'}</dd>
+                      <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">{patient.gender || 'N/A'}</dd>
                     )}
                   </div>
 
-                  {/* Date of Birth / Age */}
+                  {/* Date of Birth / Age - Enhanced 3D style */}
                   <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaCalendarAlt className="mr-2 text-orange-500" /> Date of Birth / Age
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-orange-100 rounded-lg mr-2 shadow-sm">
+                        <FaCalendarAlt className="text-orange-600" />
+                      </div>
+                      Date of Birth / Age
                     </dt>
                     {isEditing ? (
                       <input
@@ -359,19 +372,22 @@ const PatientProfile = () => {
                         name="date_of_birth"
                         value={formData.date_of_birth || ''} // Expects yyyy-MM-dd format
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900">
+                      <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
                         {patient.date_of_birth ? `${format(parseISO(patient.date_of_birth), 'MMM dd, yyyy')} (${calculateAge(patient.date_of_birth)} yrs)` : 'N/A'}
                       </dd>
                     )}
                   </div>
 
-                  {/* Phone */}
+                  {/* Phone - Enhanced 3D style */}
                   <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaPhone className="mr-2 text-green-500" /> Phone
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-green-100 rounded-lg mr-2 shadow-sm">
+                        <FaPhone className="text-green-600" />
+                      </div>
+                      Phone
                     </dt>
                     {isEditing ? (
                       <input
@@ -379,18 +395,21 @@ const PatientProfile = () => {
                         name="phone"
                         value={formData.phone || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
                         placeholder="Phone Number"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900">{patient.phone || 'N/A'}</dd>
+                      <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">{patient.phone || 'N/A'}</dd>
                     )}
                   </div>
 
-                  {/* Email */}
+                  {/* Email - Enhanced 3D style */}
                   <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaEnvelope className="mr-2 text-purple-500" /> Email
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-purple-100 rounded-lg mr-2 shadow-sm">
+                        <FaEnvelope className="text-purple-600" />
+                      </div>
+                      Email
                     </dt>
                     {isEditing ? (
                       <input
@@ -398,87 +417,106 @@ const PatientProfile = () => {
                         name="email"
                         value={formData.email || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
                         placeholder="Email Address"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900">{patient.email || 'N/A'}</dd>
+                      <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">{patient.email || 'N/A'}</dd>
                     )}
                   </div>
 
-                  {/* Address */}
-                  <div className="sm:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaMapMarkerAlt className="mr-2 text-red-500" /> Address
+                  {/* Address - Enhanced 3D style */}
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-700 flex items-center mb-2">
+                      <div className="p-1.5 bg-red-100 rounded-lg mr-2 shadow-sm">
+                        <FaMapMarkerAlt className="text-red-600" />
+                      </div>
+                      Address
                     </dt>
                     {isEditing ? (
                       <textarea
                         name="address"
                         value={formData.address || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-4 pr-4 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400 sm:text-sm rounded-lg shadow-inner"
                         placeholder="Full Address"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900">{patient.address || 'N/A'}</dd>
-                    )}
-                  </div>
-
-                  {/* Medical History */}
-                  <div className="md:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaNotesMedical className="mr-2 text-cyan-500" /> Medical History
-                    </dt>
-                    {isEditing ? (
-                      <textarea
-                        name="medical_history"
-                        value={formData.medical_history || ''}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
-                        placeholder="Relevant medical history"
-                      />
-                    ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.medical_history || 'N/A'}</dd>
-                    )}
-                  </div>
-
-                  {/* DIAGNOSIS FIELD - UPDATED APRIL 18, 2025 */}
-                  <div className="md:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaClinicMedical className="mr-2 text-lime-500" /> Diagnosis
-                    </dt>
-                    {isEditing ? (
-                      <textarea
-                        name="diagnosis"
-                        value={formData.diagnosis || ''}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
-                        placeholder="Diagnosis details"
-                      />
-                    ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.diagnosis || 'N/A'}</dd>
-                    )}
-                  </div>
-
-                  {/* Remarks */}
-                  <div className="md:col-span-2">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaComments className="mr-2 text-amber-500" /> Remarks
-                    </dt>
-                    {isEditing ? (
-                      <textarea
-                        name="remarks"
-                        value={formData.remarks || ''}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm min-h-[100px] resize-none"
-                        placeholder="Additional remarks"
-                      />
-                    ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.remarks || 'N/A'}</dd>
+                      <dd className="mt-1 text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">{patient.address || 'N/A'}</dd>
                     )}
                   </div>
 
                 </dl>
+
+                {/* Medical Notes Section with 3D Effect - Separate box */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-bold text-gray-800 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">Medical Notes</h3>
+                  
+                  <div className="space-y-6">
+                    {/* Medical History - 3D Card */}
+                    <div className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-blue-100">
+                      <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                        <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                          <FaNotesMedical className="text-blue-600" />
+                        </div>
+                        Medical History
+                      </dt>
+                      {isEditing ? (
+                        <textarea
+                          name="medical_history"
+                          value={formData.medical_history || ''}
+                          onChange={handleInputChange}
+                          className="mt-2 block w-full pl-4 pr-4 py-3 text-base border-0 bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm rounded-lg shadow-inner min-h-[150px] resize-none"
+                          placeholder="Relevant medical history"
+                        />
+                      ) : (
+                        <dd className="mt-2 text-sm text-gray-800 whitespace-pre-wrap bg-white/80 p-4 rounded-lg shadow-inner">{patient.medical_history || 'No medical history recorded.'}</dd>
+                      )}
+                    </div>
+
+                    {/* Diagnosis - 3D Card */}
+                    <div className="bg-gradient-to-br from-white to-green-50 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-green-100">
+                      <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                        <div className="p-2 bg-green-100 rounded-lg mr-3">
+                          <FaClinicMedical className="text-green-600" />
+                        </div>
+                        Diagnosis
+                      </dt>
+                      {isEditing ? (
+                        <textarea
+                          name="diagnosis"
+                          value={formData.diagnosis || ''}
+                          onChange={handleInputChange}
+                          className="mt-2 block w-full pl-4 pr-4 py-3 text-base border-0 bg-white/80 focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm rounded-lg shadow-inner min-h-[150px] resize-none"
+                          placeholder="Diagnosis details"
+                        />
+                      ) : (
+                        <dd className="mt-2 text-sm text-gray-800 whitespace-pre-wrap bg-white/80 p-4 rounded-lg shadow-inner">{patient.diagnosis || 'No diagnosis recorded.'}</dd>
+                      )}
+                    </div>
+
+                    {/* Remarks - 3D Card */}
+                    <div className="bg-gradient-to-br from-white to-amber-50 p-6 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-amber-100">
+                      <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                        <div className="p-2 bg-amber-100 rounded-lg mr-3">
+                          <FaComments className="text-amber-600" />
+                        </div>
+                        Remarks
+                      </dt>
+                      {isEditing ? (
+                        <textarea
+                          name="remarks"
+                          value={formData.remarks || ''}
+                          onChange={handleInputChange}
+                          className="mt-2 block w-full pl-4 pr-4 py-3 text-base border-0 bg-white/80 focus:outline-none focus:ring-2 focus:ring-amber-500 sm:text-sm rounded-lg shadow-inner min-h-[150px] resize-none"
+                          placeholder="Additional remarks"
+                        />
+                      ) : (
+                        <dd className="mt-2 text-sm text-gray-800 whitespace-pre-wrap bg-white/80 p-4 rounded-lg shadow-inner">{patient.remarks || 'No remarks recorded.'}</dd>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
