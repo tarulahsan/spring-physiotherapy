@@ -50,7 +50,7 @@ const ManualInvoice = () => {
   
   const [currentInvoice, setCurrentInvoice] = useState({
     invoice_date: format(new Date(), 'yyyy-MM-dd'),
-    patient_id: null,
+    patient_id: '',
     patient_display_id: '',
     patient_name: '',
     patient_phone: '',
@@ -354,7 +354,7 @@ const ManualInvoice = () => {
       setSelectedTherapies([]);
       setCurrentInvoice({
         invoice_date: format(new Date(), 'yyyy-MM-dd'),
-        patient_id: null,
+        patient_id: '',
         patient_display_id: '',
         patient_name: '',
         patient_phone: '',
