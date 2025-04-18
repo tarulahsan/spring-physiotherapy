@@ -202,7 +202,7 @@ const getManualInvoiceDownloadUrl = async (filePath) => {
   }
 };
 
-// Use named exports instead of default export
+// Export both ways to ensure compatibility
 export {
   generateInvoiceNumber,
   saveManualInvoice,
@@ -211,3 +211,15 @@ export {
   deleteManualInvoice,
   getManualInvoiceDownloadUrl
 };
+
+// Also provide default export for backward compatibility
+const manualInvoicesApi = {
+  generateInvoiceNumber,
+  saveManualInvoice,
+  getManualInvoices,
+  getManualInvoiceById,
+  deleteManualInvoice,
+  getManualInvoiceDownloadUrl
+};
+
+export default manualInvoicesApi;
