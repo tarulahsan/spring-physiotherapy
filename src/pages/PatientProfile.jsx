@@ -75,6 +75,8 @@ const PaymentModal = ({ invoice, onClose, onConfirm }) => {
 };
 
 const PatientProfile = () => {
+  console.log('PatientProfile component rendering...');
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
@@ -104,6 +106,7 @@ const PatientProfile = () => {
   };
 
   const loadPatient = async () => {
+    console.log(`loadPatient called for ID: ${id}`);
     try {
       setLoading(true);
       setError(null);
@@ -246,7 +249,13 @@ const PatientProfile = () => {
   };
 
   useEffect(() => {
-    if (id) loadPatient();
+    console.log('PatientProfile useEffect triggered.');
+    if (id) {
+      console.log(`PatientProfile useEffect - ID found: ${id}. Calling loadPatient.`);
+      loadPatient();
+    } else {
+      console.log('PatientProfile useEffect - No ID found.');
+    }
   }, [id]);
 
   console.log('Patient state before render:', patient); // Log the patient state just before rendering
