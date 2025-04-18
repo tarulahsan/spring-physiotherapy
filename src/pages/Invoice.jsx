@@ -36,10 +36,11 @@ const Invoice = () => {
   const [selectedTherapies, setSelectedTherapies] = useState([]);
   const [currentInvoice, setCurrentInvoice] = useState({
     invoice_date: format(new Date(), 'yyyy-MM-dd'),
-    patient_id: '',
+    patient_id: null,
+    patient_display_id: '',
     patient_name: '',
     patient_phone: '',
-    doctor_id: '',
+    doctor_id: null,
     discount_giver_id: null,
     discount_amount: 0,
     items: [],
@@ -115,7 +116,8 @@ const Invoice = () => {
   const handlePatientSelect = (patient) => {
     setCurrentInvoice(prev => ({
       ...prev,
-      patient_id: patient.id,
+      patient_id: patient.id, 
+      patient_display_id: patient.patient_id, 
       patient_name: patient.name,
       patient_phone: patient.phone,
       doctor_id: patient.doctor_id || ''
@@ -170,6 +172,10 @@ const Invoice = () => {
             <div>
               <label className="text-sm text-gray-600">Phone:</label>
               <div className="font-medium">{currentInvoice.patient_phone}</div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Patient ID:</label>
+              <div className="font-medium">{currentInvoice.patient_display_id}</div>
             </div>
           </div>
         </div>
@@ -294,7 +300,16 @@ const Invoice = () => {
 
       // Format the invoice data
       const invoiceData = {
-        ...currentInvoice,
+        invoice_date: currentInvoice.invoice_date,
+        patient_id: currentInvoice.patient_id, 
+        doctor_id: currentInvoice.doctor_id,
+        discount_giver_id: currentInvoice.discount_giver_id,
+        discount_amount: currentInvoice.discount_amount,
+        subtotal: currentInvoice.subtotal,
+        total_amount: currentInvoice.total_amount,
+        paid_amount: currentInvoice.paid_amount,
+        due_amount: currentInvoice.due_amount,
+        notes: currentInvoice.notes,
         items: selectedTherapies.map(therapy => ({
           therapy_type_id: therapy.therapy_type_id,
           quantity: therapy.quantity,
@@ -315,74 +330,181 @@ const Invoice = () => {
           <title>Invoice #${invoice.id}</title>
           <style>
             body {
-              font-family: Arial, sans-serif;
+              font-family: 'Segoe UI', Arial, sans-serif;
               line-height: 1.6;
-              padding: 20px;
+              padding: 40px;
+              max-width: 1000px;
+              margin: 0 auto;
+              background-color: #fff;
+              color: #2d3748;
             }
             .header {
               text-align: center;
+              margin-bottom: 40px;
+              padding: 20px;
+              border-bottom: 2px solid #e2e8f0;
+            }
+            .logo-container {
               margin-bottom: 30px;
+              padding: 20px;
             }
-            .business-info {
-              margin-bottom: 20px;
+            .logo-container img {
+              max-height: 120px;
+              max-width: 300px;
+              display: block;
+              margin: 0 auto;
             }
-            .invoice-details {
-              margin-bottom: 20px;
+            .info-row {
+              display: flex !important;
+              justify-content: space-between !important;
+              gap: 30px !important;
+              margin-bottom: 30px;
+              page-break-inside: avoid;
             }
-            .patient-info {
+            .info-column {
+              flex: 1 !important;
+              width: 48% !important;
+              padding: 25px;
+              border-radius: 12px;
+              background-color: #f8fafc;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              border: 1px solid #e2e8f0;
+              page-break-inside: avoid;
+            }
+            .info-column h2, .info-column h3 {
+              color: #2d3748;
               margin-bottom: 20px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #e2e8f0;
+              font-size: 1.25rem;
+            }
+            .info-item {
+              margin: 12px 0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .info-label {
+              font-weight: 600;
+              color: #4a5568;
+            }
+            .info-value {
+              color: #2d3748;
             }
             table {
               width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 20px;
+              border-collapse: separate;
+              border-spacing: 0;
+              margin-bottom: 30px;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
             th, td {
-              border: 1px solid #ddd;
-              padding: 8px;
+              border: 1px solid #e2e8f0;
+              padding: 16px;
               text-align: left;
             }
             th {
-              background-color: #f5f5f5;
+              background-color: #f8fafc;
+              font-weight: 600;
+              color: #4a5568;
+            }
+            tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
+            tr:hover {
+              background-color: #edf2f7;
             }
             .totals {
               float: right;
-              width: 300px;
+              width: 350px;
+              margin-left: 20px;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
             .totals table {
-              margin-top: 20px;
+              margin: 0;
+              box-shadow: none;
+            }
+            .totals tr:last-child {
+              background-color: #ebf4ff;
+              font-weight: 600;
             }
             .footer {
-              margin-top: 50px;
+              margin-top: 60px;
               text-align: center;
               font-size: 0.9em;
+              clear: both;
+              padding-top: 30px;
+              border-top: 2px solid #e2e8f0;
+              color: #4a5568;
             }
             @media print {
-              body { margin: 0; }
-              .totals { page-break-inside: avoid; }
+              body { 
+                margin: 0;
+                padding: 20px;
+                background-color: #fff;
+              }
+              .info-row {
+                display: flex !important;
+                flex-direction: row !important;
+              }
+              .info-column {
+                flex: 1 !important;
+                width: 48% !important;
+              }
+              .totals { 
+                page-break-inside: avoid;
+              }
+              .info-column {
+                break-inside: avoid;
+              }
             }
           </style>
         </head>
         <body>
           <div class="header">
-            ${settings?.logo_url ? `<img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo" style="max-height: 100px; margin: 0 auto 20px;">` : ''}
-            <h1>${settings?.business_name || 'Spring Physiotherapy'}</h1>
-            <p>${settings?.address || ''}</p>
-            <p>Phone: ${settings?.phone || ''}</p>
-            <p>Email: ${settings?.email || ''}</p>
+            ${settings?.logo_url ? `
+              <div class="logo-container">
+                <img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo">
+              </div>
+            ` : ''}
+            <h1 style="font-size: 24px; margin-bottom: 15px;">${settings?.business_name || 'Spring Physiotherapy'}</h1>
+            <p style="margin: 5px 0;">${settings?.address || ''}</p>
+            <p style="margin: 5px 0;">Phone: ${settings?.phone || ''}</p>
+            <p style="margin: 5px 0;">Email: ${settings?.email || ''}</p>
           </div>
 
-          <div class="invoice-details">
-            <h2>Invoice</h2>
-            <p><strong>Invoice Date:</strong> ${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</p>
-            <p><strong>Invoice Number:</strong> #${invoice.id.slice(0, 8)}</p>
-          </div>
-
-          <div class="patient-info">
-            <h3>Patient Information</h3>
-            <p><strong>Name:</strong> ${currentInvoice.patient_name}</p>
-            <p><strong>Phone:</strong> ${currentInvoice.patient_phone}</p>
-          </div>
+          <section class="info-row" style="display: flex !important; justify-content: space-between !important;">
+            <div class="info-column" style="flex: 1 !important; width: 48% !important;">
+              <h2>Invoice Details</h2>
+              <div class="info-item">
+                <span class="info-label">Invoice Date:</span>
+                <span class="info-value">${format(new Date(currentInvoice.invoice_date), 'MMMM dd, yyyy')}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Invoice Number:</span>
+                <span class="info-value">#${invoice.id.slice(0, 8)}</span>
+              </div>
+            </div>
+            <div class="info-column" style="flex: 1 !important; width: 48% !important;">
+              <h2>Patient Information</h2>
+              <div class="info-item">
+                <span class="info-label">Patient ID:</span>
+                <span class="info-value">${currentInvoice.patient_display_id}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Name:</span>
+                <span class="info-value">${currentInvoice.patient_name}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Phone:</span>
+                <span class="info-value">${currentInvoice.patient_phone}</span>
+              </div>
+            </div>
+          </section>
 
           <table>
             <thead>
@@ -460,10 +582,11 @@ const Invoice = () => {
       // Reset form
       setCurrentInvoice({
         invoice_date: format(new Date(), 'yyyy-MM-dd'),
-        patient_id: '',
+        patient_id: null,
+        patient_display_id: '',
         patient_name: '',
         patient_phone: '',
-        doctor_id: '',
+        doctor_id: null,
         discount_giver_id: null,
         discount_amount: 0,
         items: [],
