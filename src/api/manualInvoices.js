@@ -183,9 +183,15 @@ const deleteManualInvoice = async (id) => {
  */
 const getManualInvoiceDownloadUrl = async (filePath) => {
   try {
+    // Create a signed URL with download disposition
     const { data, error } = await supabase.storage
       .from('avatars') // Use the existing bucket name 'avatars'
-      .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
+      .createSignedUrl(filePath, 60 * 60, { 
+        disposition: 'attachment', // Force download behavior
+        transform: {  // No transforms needed for PDF
+          quality: 100
+        }
+      });
     
     if (error) throw error;
     
