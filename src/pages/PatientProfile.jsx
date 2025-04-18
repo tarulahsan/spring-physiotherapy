@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInYears } from 'date-fns';
 import {
   FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt,
   FaIdCard, FaCalendarAlt, FaNotesMedical,
@@ -87,6 +87,18 @@ const PatientProfile = () => {
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [isEditing, setIsEditing] = useState(false); // State for edit mode
+  const [formData, setFormData] = useState({}); // State for form data during edit
+
+  const calculateAge = (dob) => {
+    if (!dob) return 'N/A';
+    try {
+      return differenceInYears(new Date(), parseISO(dob));
+    } catch (e) {
+      console.error("Error calculating age:", e);
+      return 'N/A';
+    }
+  };
 
   const loadPatient = async () => {
     try {
@@ -167,6 +179,50 @@ const PatientProfile = () => {
     }
   };
 
+  const handleEditClick = () => {
+    setFormData({ ...patient, date_of_birth: patient?.date_of_birth ? format(parseISO(patient.date_of_birth), 'yyyy-MM-dd') : '' }); // Initialize form data, format date
+    setIsEditing(true);
+  };
+
+  const handleCancelClick = () => {
+    setIsEditing(false);
+    setFormData({}); // Clear form data or reset to original if needed
+  };
+
+  const handleSaveClick = async () => {
+    console.log('Saving data:', formData); // Debugging
+    if (!formData.name || !formData.phone) {
+      toast.error('Patient Name and Phone are required.');
+      return;
+    }
+    // Optional: Add more validation here
+
+    try {
+      setLoading(true); // Indicate loading state
+      // Ensure date_of_birth is not an empty string before sending
+      const dataToSend = { ...formData };
+      if (dataToSend.date_of_birth === '') {
+        dataToSend.date_of_birth = null;
+      }
+
+      const updatedPatient = await patientApi.updatePatient(id, dataToSend);
+      setPatient(updatedPatient); // Update local patient state
+      setIsEditing(false); // Exit edit mode
+      toast.success('Patient details updated successfully!');
+    } catch (err) {
+      console.error('Error updating patient:', err);
+      toast.error(`Failed to update patient: ${err.message || 'Please try again.'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type } = e.target;
+    // Handle potential number conversion if needed in the future
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   useEffect(() => {
     if (id) loadPatient();
   }, [id]);
@@ -234,65 +290,175 @@ const PatientProfile = () => {
             </div>
 
             <div className="p-4">
-              {/* Info Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                <InfoCard
-                  icon={FaUser}
-                  label="Gender"
-                  value={patient.gender}
-                  color="from-pink-500 to-rose-500"
-                />
-                <InfoCard
-                  icon={FaPhone}
-                  label="Phone"
-                  value={patient.phone}
-                  color="from-green-500 to-emerald-500"
-                />
-                <InfoCard
-                  icon={FaEnvelope}
-                  label="Email"
-                  value={patient.email || 'Not provided'}
-                  color="from-blue-500 to-cyan-500"
-                />
-                <InfoCard
-                  icon={FaMapMarkerAlt}
-                  label="Address"
-                  value={patient.address || 'Not provided'}
-                  color="from-orange-500 to-amber-500"
-                />
-                <InfoCard
-                  icon={FaCalendarAlt}
-                  label="Registration"
-                  value={format(new Date(patient.created_at), 'MMM dd, yyyy')}
-                  color="from-violet-500 to-purple-500"
-                />
-              </div>
+              {/* Basic Info Grid - Conditionally Rendered */}
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
 
-              {/* Medical History & Remarks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 transform hover:scale-[1.01] transition-all duration-300 shadow-md">
-                  <h2 className="text-base font-semibold text-indigo-900 mb-2 flex items-center">
-                    <div className="bg-gradient-to-br from-blue-500 to-indigo-500 p-2 rounded-lg shadow-md transform -rotate-3 hover:rotate-0 transition-all duration-300 mr-2">
-                      <FaNotesMedical className="text-white" />
-                    </div>
-                    Medical History
-                  </h2>
-                  <p className="text-sm text-gray-700 bg-white/80 p-2 rounded-lg shadow-inner max-h-24 overflow-auto">
-                    {patient.medical_history || 'No medical history recorded'}
-                  </p>
-                </div>
+                  {/* Patient ID (Read-only) */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaIdCard className="mr-2 text-teal-500" /> Patient ID
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">{patient.patient_id || 'N/A'}</dd>
+                  </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 transform hover:scale-[1.01] transition-all duration-300 shadow-md">
-                  <h2 className="text-base font-semibold text-purple-900 mb-2 flex items-center">
-                    <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-2 rounded-lg shadow-md transform rotate-3 hover:rotate-0 transition-all duration-300 mr-2">
-                      <FaComments className="text-white" />
-                    </div>
-                    Remarks
-                  </h2>
-                  <p className="text-sm text-gray-700 bg-white/80 p-2 rounded-lg shadow-inner max-h-24 overflow-auto">
-                    {patient.remarks || 'No remarks recorded'}
-                  </p>
-                </div>
+                  {/* Gender */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaUser className="mr-2 text-pink-500" /> Gender
+                    </dt>
+                    {isEditing ? (
+                      <select
+                        name="gender"
+                        value={formData.gender || ''}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900">{patient.gender || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Date of Birth / Age */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaCalendarAlt className="mr-2 text-orange-500" /> Date of Birth / Age
+                    </dt>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        name="date_of_birth"
+                        value={formData.date_of_birth || ''} // Expects yyyy-MM-dd format
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {patient.date_of_birth ? `${format(parseISO(patient.date_of_birth), 'MMM dd, yyyy')} (${calculateAge(patient.date_of_birth)} yrs)` : 'N/A'}
+                      </dd>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaPhone className="mr-2 text-green-500" /> Phone
+                    </dt>
+                    {isEditing ? (
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone || ''}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Phone Number"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900">{patient.phone || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaEnvelope className="mr-2 text-purple-500" /> Email
+                    </dt>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email || ''}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Email Address"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900">{patient.email || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaMapMarkerAlt className="mr-2 text-red-500" /> Address
+                    </dt>
+                    {isEditing ? (
+                      <textarea
+                        name="address"
+                        value={formData.address || ''}
+                        onChange={handleInputChange}
+                        rows="2"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Full Address"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900">{patient.address || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Medical History */}
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaNotesMedical className="mr-2 text-cyan-500" /> Medical History
+                    </dt>
+                    {isEditing ? (
+                      <textarea
+                        name="medical_history"
+                        value={formData.medical_history || ''}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Relevant medical history"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.medical_history || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Diagnosis */}
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaClinicMedical className="mr-2 text-lime-500" /> Diagnosis
+                    </dt>
+                    {isEditing ? (
+                      <textarea
+                        name="diagnosis"
+                        value={formData.diagnosis || ''}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Diagnosis details"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.diagnosis || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                  {/* Remarks */}
+                  <div className="sm:col-span-2">
+                    <dt className="text-sm font-medium text-gray-500 flex items-center">
+                      <FaComments className="mr-2 text-amber-500" /> Remarks
+                    </dt>
+                    {isEditing ? (
+                      <textarea
+                        name="remarks"
+                        value={formData.remarks || ''}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        placeholder="Additional remarks"
+                      />
+                    ) : (
+                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.remarks || 'N/A'}</dd>
+                    )}
+                  </div>
+
+                </dl>
               </div>
             </div>
           </div>
@@ -516,6 +682,61 @@ const PatientProfile = () => {
         </div>
       </div>
 
+      {/* Patient Profile */}
+      <div className="flex justify-between items-start">
+        <div className="flex items-center space-x-4">
+          <div className="p-3 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-lg">
+            <FaUser size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              {/* Conditional Rendering for Name - Input field will be here */} 
+              {isEditing ? (
+                <input 
+                  type="text"
+                  name="name"
+                  value={formData.name || ''}
+                  onChange={handleInputChange}
+                  className="text-2xl font-bold text-gray-800 border-b-2 border-blue-300 focus:outline-none focus:border-blue-500 bg-transparent"
+                  placeholder="Patient Name"
+                />
+              ) : (
+                patient.name
+              )}
+            </h1>
+            <p className="text-sm text-gray-500">Patient ID: {patient.patient_id}</p>
+          </div>
+        </div>
+        {/* Edit/Save/Cancel Buttons */} 
+        <div className="absolute top-4 right-4 flex space-x-2">
+          {!isEditing ? (
+            <button
+              onClick={handleEditClick}
+              className="px-3 py-1 bg-blue-500 text-white text-xs font-medium rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleSaveClick}
+                disabled={loading} // Disable save button while loading
+                className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={handleCancelClick}
+                disabled={loading} // Disable cancel button while loading
+                className="px-3 py-1 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Payment Modal */}
       {selectedInvoice && (
         <PaymentModal
@@ -527,19 +748,5 @@ const PatientProfile = () => {
     </div>
   );
 };
-
-const InfoCard = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-white rounded-lg shadow-md p-2 transform hover:scale-[1.02] transition-all duration-300 hover:shadow-lg">
-    <div className="flex items-center space-x-2">
-      <div className={`p-1.5 rounded-lg bg-gradient-to-br ${color} transform hover:rotate-6 transition-all duration-300 shadow-md`}>
-        <Icon className="text-sm text-white" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-500 font-medium truncate">{label}</p>
-        <p className="text-sm text-gray-800 font-semibold truncate">{value}</p>
-      </div>
-    </div>
-  </div>
-);
 
 export default PatientProfile;

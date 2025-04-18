@@ -62,10 +62,12 @@ const patientApi = {
           patient_id,
           name,
           gender,
+          date_of_birth,
           phone,
           email,
           address,
           medical_history,
+          diagnosis,
           remarks,
           created_at
         `)
