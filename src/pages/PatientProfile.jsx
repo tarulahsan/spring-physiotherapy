@@ -292,7 +292,7 @@ const PatientProfile = () => {
             <div className="p-4">
               {/* Basic Info Grid - Conditionally Rendered */}
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">
 
                   {/* Patient ID (Read-only) */}
                   <div className="sm:col-span-1">
@@ -392,7 +392,6 @@ const PatientProfile = () => {
                         name="address"
                         value={formData.address || ''}
                         onChange={handleInputChange}
-                        rows="2"
                         className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                         placeholder="Full Address"
                       />
@@ -402,7 +401,7 @@ const PatientProfile = () => {
                   </div>
 
                   {/* Medical History */}
-                  <div className="sm:col-span-2">
+                  <div className="md:col-span-1">
                     <dt className="text-sm font-medium text-gray-500 flex items-center">
                       <FaNotesMedical className="mr-2 text-cyan-500" /> Medical History
                     </dt>
@@ -411,8 +410,7 @@ const PatientProfile = () => {
                         name="medical_history"
                         value={formData.medical_history || ''}
                         onChange={handleInputChange}
-                        rows="3"
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
                         placeholder="Relevant medical history"
                       />
                     ) : (
@@ -421,7 +419,7 @@ const PatientProfile = () => {
                   </div>
 
                   {/* Diagnosis */}
-                  <div className="sm:col-span-2">
+                  <div className="md:col-span-1">
                     <dt className="text-sm font-medium text-gray-500 flex items-center">
                       <FaClinicMedical className="mr-2 text-lime-500" /> Diagnosis
                     </dt>
@@ -430,8 +428,7 @@ const PatientProfile = () => {
                         name="diagnosis"
                         value={formData.diagnosis || ''}
                         onChange={handleInputChange}
-                        rows="3"
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
                         placeholder="Diagnosis details"
                       />
                     ) : (
@@ -440,7 +437,7 @@ const PatientProfile = () => {
                   </div>
 
                   {/* Remarks */}
-                  <div className="sm:col-span-2">
+                  <div className="md:col-span-2">
                     <dt className="text-sm font-medium text-gray-500 flex items-center">
                       <FaComments className="mr-2 text-amber-500" /> Remarks
                     </dt>
@@ -449,8 +446,7 @@ const PatientProfile = () => {
                         name="remarks"
                         value={formData.remarks || ''}
                         onChange={handleInputChange}
-                        rows="3"
-                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-2 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
                         placeholder="Additional remarks"
                       />
                     ) : (
