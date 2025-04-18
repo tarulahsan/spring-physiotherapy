@@ -864,9 +864,9 @@ const ManualInvoice = () => {
               <div ref={invoiceRef} className="p-4 border border-gray-200 rounded bg-white">
                 {/* Invoice Header */}
                 <div className="text-center mb-6">
-                  {settings?.business_logo && (
+                  {settings?.logo_url && (
                     <img 
-                      src={settings.business_logo} 
+                      src={settings.logo_url} 
                       alt="Business Logo" 
                       className="h-16 mx-auto mb-2" 
                     />
