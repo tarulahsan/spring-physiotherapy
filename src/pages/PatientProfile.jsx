@@ -462,10 +462,10 @@ const PatientProfile = () => {
                     )}
                   </div>
 
-                  {/* DIAGNOSIS FIELD - UPDATED APRIL 18, 2025 */}
-                  <div className="md:col-span-1">
-                    <dt className="text-sm font-medium text-gray-500 flex items-center">
-                      <FaClinicMedical className="mr-2 text-lime-500" /> Diagnosis
+                  {/* DIAGNOSIS FIELD - UPDATED APRIL 19, 2025 */}
+                  <div className="md:col-span-1" style={{ border: '2px solid #22c55e', padding: '8px', borderRadius: '8px', backgroundColor: '#f0fdf4' }}>
+                    <dt className="text-sm font-bold text-gray-700 flex items-center">
+                      <FaClinicMedical className="mr-2 text-lime-600" /> Diagnosis (Updated)
                     </dt>
                     {isEditing ? (
                       <textarea
@@ -476,7 +476,14 @@ const PatientProfile = () => {
                         placeholder="Diagnosis details"
                       />
                     ) : (
-                      <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{patient.diagnosis || 'N/A'}</dd>
+                      <>
+                        <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap font-medium">
+                          {patient.diagnosis || 'No diagnosis on record. Click Edit Profile to add one.'}
+                        </dd>
+                        <div className="text-xs text-gray-500 mt-2">
+                          Patient ID: {patient.id} | Last updated: {new Date().toLocaleString()}
+                        </div>
+                      </>
                     )}
                   </div>
 
