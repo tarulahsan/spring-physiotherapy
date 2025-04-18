@@ -34,7 +34,6 @@ const ManualInvoice = () => {
   const [settings, setSettings] = useState(null);
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
-  const [doctors, setDoctors] = useState([]);
   const [therapyTypes, setTherapyTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
@@ -54,7 +53,6 @@ const ManualInvoice = () => {
     patient_display_id: '',
     patient_name: '',
     patient_phone: '',
-    doctor_id: '',
     discount_amount: 0,
     items: [],
     subtotal: 0,
@@ -74,20 +72,17 @@ const ManualInvoice = () => {
         setLoading(true);
         const [
           settingsData,
-          doctorsData,
           therapiesData
         ] = await Promise.all([
           settingsApi.getBusinessSettings(),
-          doctorApi.getDoctors(),
           therapyApi.getAllTherapies()
         ]);
 
-        if (!settingsData || !doctorsData || !therapiesData) {
+        if (!settingsData || !therapiesData) { 
           throw new Error('Failed to fetch required data');
         }
 
         setSettings(settingsData);
-        setDoctors(doctorsData.filter(d => d.status === 'active'));
         setTherapyTypes(therapiesData.filter(t => t.status === 'active'));
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -154,7 +149,6 @@ const ManualInvoice = () => {
       patient_display_id: patient.patient_id, 
       patient_name: patient.name,
       patient_phone: patient.phone,
-      doctor_id: patient.doctor_id || ''
     }));
     setSearchTerm('');
     setFilteredPatients([]);
@@ -358,7 +352,6 @@ const ManualInvoice = () => {
         patient_display_id: '',
         patient_name: '',
         patient_phone: '',
-        doctor_id: '',
         discount_amount: 0,
         items: [],
         subtotal: 0,
@@ -842,14 +835,14 @@ const ManualInvoice = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          className="px-3 py-1 mr-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 focus:outline-none"
+                          className="px-3 py-1 mr-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           onClick={() => handleDownloadInvoice(invoice)}
                           disabled={loadingInvoices}
                         >
                           <FaDownload className="inline mr-1" /> Download
                         </button>
                         <button
-                          className="px-3 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 focus:outline-none"
+                          className="px-3 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           onClick={() => handleDeleteInvoice(invoice.id)}
                           disabled={loadingInvoices}
                         >
@@ -937,26 +930,6 @@ const ManualInvoice = () => {
                       className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                     />
                     <FaCalendarAlt className="absolute right-3 top-3 text-gray-400" />
-                  </div>
-                </div>
-
-                {/* Doctor Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Doctor</label>
-                  <div className="relative">
-                    <select
-                      value={currentInvoice.doctor_id || ''} // Ensure value is never null
-                      onChange={(e) => setCurrentInvoice(prev => ({ ...prev, doctor_id: e.target.value }))}
-                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors appearance-none"
-                    >
-                      <option value="">Select a doctor (Optional)</option>
-                      {doctors.map(doctor => (
-                        <option key={doctor.id} value={doctor.id}>
-                          {doctor.name} ({doctor.specialization})
-                        </option>
-                      ))}
-                    </select>
-                    <FaUserMd className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
 
@@ -1099,7 +1072,7 @@ const ManualInvoice = () => {
                         <FaMoneyBillWave className="absolute right-3 top-3 text-gray-400" />
                       </div>
                     </div>
-                    <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t-2 border-gray-200">
+                    <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-2 mt-2">
                       <span>Due Amount:</span>
                       <span className="text-red-600">{settings?.currency || '৳'} {currentInvoice.due_amount}</span>
                     </div>
