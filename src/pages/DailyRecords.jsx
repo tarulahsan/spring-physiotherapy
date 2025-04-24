@@ -116,14 +116,14 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
                 <div className="flex-1 ml-8">
                   <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {record.patients?.name}
+                      {record.patients?.name || 'Unknown Patient'}
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {record.patients?.patient_id || 'No ID'}
                       </span>
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                        {record.therapy_types?.name}
+                        {record.therapy_types?.name || 'Unknown Therapy'}
                       </span>
                     </div>
                   </div>
@@ -362,8 +362,28 @@ const DailyRecords = () => {
       toast.success('Records added successfully');
       setSelectedTherapies([]);
       setTherapyTime('');
-      loadDailyRecords();
-      loadAvailableTherapies(); // Reload available therapies to update remaining days
+      
+      // Reload both daily records and available therapies to refresh the UI
+      try {
+        await loadDailyRecords();
+        
+        // Reload available therapies for this patient
+        if (selectedPatient?.id && selectedDate) {
+          const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+          const therapies = await getAvailableTherapies(
+            selectedPatient.id, 
+            formattedDate
+          );
+          setAvailableTherapies(Array.isArray(therapies) ? therapies : []);
+        }
+      } catch (error) {
+        // Handle potential session errors during reload
+        if (error.message && error.message.includes('not authenticated')) {
+          toast.error('Session expired. Please refresh the page to log in again.');
+        } else {
+          console.error('Error refreshing data:', error);
+        }
+      }
     } catch (error) {
       console.error('Error adding records:', error);
       toast.error('Failed to add records');

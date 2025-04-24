@@ -7,16 +7,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Create a single instance of the Supabase client
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a Supabase client with persistent storage and extended session duration
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storage: window.localStorage,
+    autoRefreshToken: true,
+    debug: true
+  }
+});
 
-// Add error logging
+// Enhanced auth state logging
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     console.log('User signed out');
   } else if (event === 'SIGNED_IN') {
     console.log('User signed in');
+  } else if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed successfully');
+  } else if (event === 'USER_UPDATED') {
+    console.log('User updated');
   }
+});
+
+// Add a listener for auth errors to help debugging
+window.addEventListener('supabase.auth.error', (e) => {
+  console.error('Supabase auth error:', e.detail);
 });
 
 // Export only the single instance
