@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
+import { supabase } from '../lib/supabase';
 
 export const addDailyRecord = async (patientId, therapyTypeId, therapyDate, therapyTime) => {
   try {
@@ -52,13 +52,40 @@ export const getDailyRecords = async (date) => {
   try {
     const formattedDate = new Date(date).toISOString().split('T')[0];
     
+    // Use the same foreign key references that are working in addDailyRecord
     const { data: records, error } = await supabase
       .from('daily_therapy_records')
-      .select('*')
+      .select(`
+        id,
+        therapy_date,
+        therapy_time,
+        patient_id,
+        therapy_type_id,
+        patients!fk_daily_therapy_records_patient(
+          id,
+          name,
+          phone,
+          email,
+          age,
+          gender,
+          address,
+          patient_id,
+          primary_doctor_id,
+          discount_giver_id,
+          referrer_id
+        ),
+        therapy_types!fk_daily_therapy_records_therapy(
+          id,
+          name,
+          description,
+          price
+        )
+      `)
       .eq('therapy_date', formattedDate)
       .order('therapy_time', { ascending: true });
 
     if (error) throw error;
+    console.log('Daily records fetched with patient data:', records);
     return records;
   } catch (error) {
     console.error('Error fetching records:', error);

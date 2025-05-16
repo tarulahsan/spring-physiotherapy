@@ -55,6 +55,7 @@ export default function PatientManagement() {
     email: '',
     address: '',
     age: '',
+    date_of_birth: '',
     medical_history: '',
     doctor_id: '',
     remarks: '',
@@ -534,6 +535,22 @@ export default function PatientManagement() {
                     placeholder="Enter patient age"
                   />
                   <FaBirthdayCake className="absolute left-4 top-[43px] text-orange-400 group-hover:text-orange-500 transition-colors" />
+                </div>
+
+                {/* Date of Birth */}
+                <div className="relative group">
+                  <label className="block text-gray-700 mb-2 flex items-center font-medium">
+                    <FaCalendarAlt className="text-purple-500 mr-2" />
+                    Date of Birth <span className="text-sm text-gray-500 ml-1">(Optional)</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.date_of_birth || ''}
+                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                    className="w-full px-4 py-3 pl-12 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-purple-50/30 hover:bg-purple-50/50"
+                    placeholder="Select date of birth"
+                  />
+                  <FaCalendarAlt className="absolute left-4 top-[43px] text-purple-400 group-hover:text-purple-500 transition-colors" />
                 </div>
 
                 {/* Gender */}

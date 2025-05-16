@@ -302,8 +302,8 @@ const Invoice = () => {
       const invoiceData = {
         invoice_date: currentInvoice.invoice_date,
         patient_id: currentInvoice.patient_id, 
-        doctor_id: currentInvoice.doctor_id,
-        discount_giver_id: currentInvoice.discount_giver_id,
+        doctor_id: currentInvoice.doctor_id || null,
+        discount_giver_id: currentInvoice.discount_giver_id || null,
         discount_amount: currentInvoice.discount_amount,
         subtotal: currentInvoice.subtotal,
         total_amount: currentInvoice.total_amount,
@@ -332,44 +332,62 @@ const Invoice = () => {
             body {
               font-family: 'Segoe UI', Arial, sans-serif;
               line-height: 1.6;
-              padding: 40px;
+              padding: 20px;
+              margin: 0 auto 20px auto;
               max-width: 1000px;
-              margin: 0 auto;
-              background-color: #fff;
-              color: #2d3748;
+              page-break-inside: avoid;
+              font-size: 13px;
             }
+            
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              padding: 20px;
-              border-bottom: 2px solid #e2e8f0;
+              margin: 0 0 20px 0;
+              padding: 0;
             }
+            
             .logo-container {
-              margin-bottom: 30px;
-              padding: 20px;
+              margin: 0 auto 5px;
+              text-align: center;
             }
+            
             .logo-container img {
-              max-height: 120px;
-              max-width: 300px;
-              display: block;
-              margin: 0 auto;
+              width: 100px;
+              height: auto;
+              max-height: 80px;
+              object-fit: contain;
             }
-            .info-row {
-              display: flex !important;
-              justify-content: space-between !important;
-              gap: 30px !important;
-              margin-bottom: 30px;
-              page-break-inside: avoid;
+            
+            .business-name {
+              font-size: 18px;
+              font-weight: bold;
+              margin: 8px 0 5px 0;
+              color: #2d3748;
             }
+            
+            .business-address {
+              font-size: 11px;
+              color: #4a5568;
+              margin: 0 0 5px 0;
+              line-height: 1.4;
+            }
+            
+            .business-contact {
+              font-size: 10px;
+              color: #4a5568;
+              margin: 2px 0;
+              line-height: 1.4;
+            }
+            
             .info-column {
               flex: 1 !important;
               width: 48% !important;
-              padding: 25px;
-              border-radius: 12px;
+              padding: 15px;
+              border-radius: 8px;
               background-color: #f8fafc;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
               border: 1px solid #e2e8f0;
               page-break-inside: avoid;
+              font-size: 12px;
             }
             .info-column h2, .info-column h3 {
               color: #2d3748;
@@ -471,10 +489,9 @@ const Invoice = () => {
                 <img src="${settings.logo_url}" alt="${settings?.business_name || 'Spring Physiotherapy'} Logo">
               </div>
             ` : ''}
-            <h1 style="font-size: 24px; margin-bottom: 15px;">${settings?.business_name || 'Spring Physiotherapy'}</h1>
-            <p style="margin: 5px 0;">${settings?.address || ''}</p>
-            <p style="margin: 5px 0;">Phone: ${settings?.phone || ''}</p>
-            <p style="margin: 5px 0;">Email: ${settings?.email || ''}</p>
+            <h1 class="business-name">${settings?.business_name || 'Spring Physiotherapy'}</h1>
+            <p class="business-address">${settings?.address || ''}</p>
+            <p class="business-contact">Phone: ${settings?.phone || ''}${settings?.phone && settings?.email ? ' | ' : ''}${settings?.email || ''}</p>
           </div>
 
           <section class="info-row" style="display: flex !important; justify-content: space-between !important;">

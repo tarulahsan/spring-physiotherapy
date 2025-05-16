@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   FaPrint, 
   FaSearch,
@@ -53,7 +54,7 @@ const ManualInvoice = () => {
     patient_display_id: '',
     patient_name: '',
     patient_phone: '',
-    doctor_id: '',
+    doctor_id: null,
     discount_amount: 0,
     items: [],
     subtotal: 0,
@@ -61,7 +62,8 @@ const ManualInvoice = () => {
     paid_amount: 0,
     due_amount: 0,
     notes: '',
-    description: ''
+    description: '',
+    invoice_number: `MINV-${format(new Date(), 'yyyyMMdd')}-${Math.floor(1000 + Math.random() * 9000)}` // Generate unique invoice number on init
   });
   
   const invoiceRef = useRef(null);
@@ -71,19 +73,40 @@ const ManualInvoice = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [
-          settingsData,
-          therapiesData
-        ] = await Promise.all([
-          settingsApi.getBusinessSettings(),
-          therapyApi.getAllTherapies()
-        ]);
+        
+        // Try to fetch settings directly from Supabase first
+        let businessSettings;
+        try {
+          const { data, error } = await supabase
+            .from('business_settings')
+            .select('*')
+            .single();
+            
+          if (!error && data) {
+            console.log('Directly fetched business settings:', data);
+            businessSettings = data;
+          } else {
+            console.error('Error fetching from business_settings directly:', error);
+            // Fallback to using the API
+            businessSettings = await settingsApi.getBusinessSettings();
+          }
+        } catch(settingsError) {
+          console.error('Failed to fetch settings directly, trying API:', settingsError);
+          businessSettings = await settingsApi.getBusinessSettings();
+        }
+        
+        // Fetch therapies
+        const therapiesData = await therapyApi.getAllTherapies();
 
-        if (!settingsData || !therapiesData) { 
-          throw new Error('Failed to fetch required data');
+        if (!therapiesData) { 
+          throw new Error('Failed to fetch required therapy data');
         }
 
-        setSettings(settingsData);
+        // Log the settings we're about to use
+        console.log('Using business settings:', businessSettings);
+        
+        // Set state with fetched data
+        setSettings(businessSettings);
         setTherapyTypes(therapiesData.filter(t => t.status === 'active'));
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -95,6 +118,19 @@ const ManualInvoice = () => {
 
     fetchData();
   }, []);
+
+  // Load business settings once when component mounts
+  useEffect(() => {
+    if (!settings) {
+      settingsApi.getBusinessSettings().then(freshSettings => {
+        console.log('Loaded business settings:', freshSettings);
+        setSettings(freshSettings);
+      }).catch(error => {
+        console.error('Failed to load business settings:', error);
+        toast.error('Failed to load business information');
+      });
+    }
+  }, [settings]);
 
   // Load existing manual invoices when tab changes or filter changes
   useEffect(() => {
@@ -398,16 +434,33 @@ const ManualInvoice = () => {
     // Define starting position
     let yPos = margin;
     
-    // Business Information - Header
-    const businessName = settings?.business_name || 'Spring Physiotherapy';
-    const businessAddress = settings?.business_address || '123 Main St, City';
-    const businessPhone = settings?.business_phone || '';
-    const businessEmail = settings?.business_email || '';
+    // Debug business settings to verify what we have
+    console.log('Settings object at PDF generation:', settings);
     
-    // Add logo if available
-    if (settings?.logo_url) {
+    // Ensure we have the latest business settings when generating PDF
+    let currentSettings = settings;
+    if (!currentSettings || !currentSettings.business_name) {
+      try {
+        console.log('Attempting to fetch fresh business settings...');
+        const freshSettings = await settingsApi.getBusinessSettings();
+        console.log('Fresh business settings:', freshSettings);
+        currentSettings = freshSettings || {};
+      } catch (err) {
+        console.error('Error fetching fresh settings:', err);
+      }
+    }
+    
+    // Business Information - Header with proper fallbacks if still not available
+    const businessName = currentSettings?.business_name || currentSettings?.name || 'Spring Physiotherapy';
+    const businessAddress = currentSettings?.business_address || currentSettings?.address || 'Address not available';
+    const businessPhone = currentSettings?.business_phone || currentSettings?.phone || '';
+    const businessEmail = currentSettings?.business_email || currentSettings?.email || '';
+    
+    // Add logo if available - use the currentSettings from our fresh fetch
+    if (currentSettings?.logo_url) {
       const logoImg = new Image();
-      logoImg.src = settings?.logo_url;
+      logoImg.src = currentSettings.logo_url;
+      console.log('Using logo URL:', currentSettings.logo_url);
       
       // Wait for the image to load
       await new Promise((resolve) => {
@@ -474,7 +527,7 @@ const ManualInvoice = () => {
     
     // Invoice details (right side)
     const invoiceDate = format(new Date(currentInvoice.invoice_date), 'MMM dd, yyyy');
-    const invoiceNumber = `Invoice #: ${currentInvoice.invoice_number || 'MINV-XXXXXXXX'}`;
+    const invoiceNumber = `Invoice #: ${currentInvoice.invoice_number}`;
     const paymentStatus = currentInvoice.status === 'paid' ? 'PAID' : 
                          currentInvoice.status === 'partially_paid' ? 'PARTIALLY PAID' : 'DUE';
     
@@ -1126,19 +1179,23 @@ const ManualInvoice = () => {
                     <img 
                       src={settings.logo_url} 
                       alt="Business Logo" 
-                      className="h-16 mx-auto mb-2" 
+                      className="h-16 mx-auto mb-2"
+                      onError={(e) => {
+                        console.error('Logo failed to load');
+                        e.target.style.display = 'none'; // Hide broken image
+                      }}
                     />
                   )}
                   <h2 className="text-2xl font-bold text-gray-800">
-                    {settings?.business_name || 'Spring Physiotherapy'}
+                    {settings?.business_name || settings?.name || 'Spring Physiotherapy'}
                   </h2>
                   <p className="text-gray-600">
-                    {settings?.business_address || '123 Main St, City'}
+                    {settings?.business_address || settings?.address || 'Address not available'}
                   </p>
                   <div className="flex justify-center items-center gap-4 mt-2 text-sm text-gray-600">
-                    {settings?.business_phone && (
+                    {(settings?.business_phone || settings?.phone) && (
                       <span className="flex items-center gap-1">
-                        <FaPhone /> {settings.business_phone}
+                        <FaPhone /> {settings?.business_phone || settings?.phone}
                       </span>
                     )}
                     {settings?.business_email && (
@@ -1164,7 +1221,7 @@ const ManualInvoice = () => {
                   </div>
                   <div className="text-right">
                     <p><span className="font-medium">Date:</span> {format(new Date(currentInvoice.invoice_date), 'MMM dd, yyyy')}</p>
-                    <p><span className="font-medium">Invoice #:</span> MINV-{format(new Date(), 'yyyyMMdd')}-XXXX</p>
+                    <p><span className="font-medium">Invoice #:</span> {currentInvoice.invoice_number}</p>
                     <p className="text-xl font-bold mt-2 text-green-600">
                       {currentInvoice.status === 'paid' ? 'PAID' : currentInvoice.status === 'partially_paid' ? 'PARTIALLY PAID' : 'DUE'}
                     </p>

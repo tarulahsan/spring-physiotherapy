@@ -122,6 +122,15 @@ export default {
       throw new Error('Patient ID is required');
     }
 
+    // Ensure doctor_id and discount_giver_id are either valid UUIDs or null
+    if (invoiceData.doctor_id === '') {
+      invoiceData.doctor_id = null;
+    }
+    
+    if (invoiceData.discount_giver_id === '') {
+      invoiceData.discount_giver_id = null;
+    }
+
     // Helper function to round to 2 decimal places
     const round = (num) => Math.round((num + Number.EPSILON) * 100) / 100;
 

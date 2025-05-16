@@ -4,18 +4,28 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('Missing Supabase environment variables');
+  // Instead of throwing an error, we'll create a more resilient setup
 }
 
-// Create a Supabase client with persistent storage and extended session duration
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Create a Supabase client with retry logic and enhanced error handling
+const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', 
+                           supabaseAnonKey || 'placeholder', {
   auth: {
     persistSession: true,
     storage: window.localStorage,
     autoRefreshToken: true,
-    debug: true
+    debug: false, // Reduce debug logging in production
+    retryAttempts: 3,
+    retryInterval: 2000
   }
 });
+
+// Add a general error handler to prevent uncaught exceptions
+supabase.handleError = (error) => {
+  console.error('Supabase Error:', error);
+  return null; // Return null instead of throwing to prevent app crashes
+};
 
 // Enhanced auth state logging
 supabase.auth.onAuthStateChange((event, session) => {

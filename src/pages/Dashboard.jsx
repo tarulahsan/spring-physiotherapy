@@ -17,6 +17,7 @@ import { toast } from 'react-toastify';
 import patientApi from '../api/patientApi';
 import invoiceApi from '../api/invoiceApi';
 import { getDailyRecords } from '../api/dailyRecords';
+import TherapyAnalysis from '../components/TherapyAnalysis';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#FF69B4'];
 
@@ -214,15 +215,25 @@ export default function Dashboard() {
   }, []);
 
   const calculateTopTherapies = (records) => {
-    // Count therapy occurrences
+    // Safely handle records that might not have therapy_types
+    if (!records || !records.length) {
+      return [];
+    }
+    
+    // Count therapy occurrences, with fallbacks for different data structures
     const therapyCount = records.reduce((acc, record) => {
-      const therapyName = record.therapy_types.name;
+      // Check for both possibilities in the data structure
+      const therapyName = record.therapy_types?.name || 
+                         (record.therapy_type_id ? `Therapy #${record.therapy_type_id}` : 'Unknown Therapy');
+      
       acc[therapyName] = (acc[therapyName] || 0) + 1;
       return acc;
     }, {});
 
-    // Calculate total sessions
-    const totalSessions = Object.values(therapyCount).reduce((sum, count) => sum + count, 0);
+    // Calculate total sessions (protect against empty data)
+    const countValues = Object.values(therapyCount);
+    const totalSessions = countValues.length > 0 ? 
+      countValues.reduce((sum, count) => sum + count, 0) : 0;
 
     // Convert to array and sort by count
     return Object.entries(therapyCount)
@@ -582,6 +593,11 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </div>
+          
+          {/* Therapy Analysis Section */}
+          <div className="col-span-1 lg:col-span-3 mt-6">
+            <TherapyAnalysis />
           </div>
         </div>
       </div>

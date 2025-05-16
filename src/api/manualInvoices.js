@@ -81,7 +81,7 @@ const saveManualInvoice = async (invoiceData, pdfBlob) => {
     return data[0];
   } catch (error) {
     console.error('Error saving manual invoice:', error);
-    throw error;
+    throw new Error(`Failed to save invoice: ${error.message || 'Unknown error'}`);
   }
 };
 
@@ -210,8 +210,51 @@ export {
 };
 
 // Also provide default export for backward compatibility
+/**
+ * Generate a manual invoice in the database
+ * @param {Object} formData - The invoice form data
+ * @returns {Promise} - The created invoice data
+ */
+export const generateManualInvoice = async (formData) => {
+  try {
+    console.log('Creating manual invoice with data:', formData);
+    
+    // Generate invoice number
+    const invoiceNumber = await generateInvoiceNumber();
+    
+    // Create the invoice record with timeout to prevent long-hanging requests
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timed out')), 15000)
+    );
+    
+    const dbPromise = supabase
+      .from('manual_invoices')
+      .insert([{
+        ...formData,
+        invoice_number: invoiceNumber,
+        status: 'completed',
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    
+    const result = await Promise.race([dbPromise, timeoutPromise]);
+    
+    if (result.error) {
+      console.error('Database error generating invoice:', result.error);
+      throw result.error;
+    }
+    return result.data;
+  } catch (error) {
+    console.error('Error generating manual invoice:', error);
+    // Provide a user-friendly error
+    throw new Error(`Failed to generate invoice: ${error.message || 'Unknown error'}`);
+  }
+};
+
 const manualInvoicesApi = {
   generateInvoiceNumber,
+  generateManualInvoice,
   saveManualInvoice,
   getManualInvoices,
   getManualInvoiceById,

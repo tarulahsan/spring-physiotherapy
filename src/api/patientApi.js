@@ -63,12 +63,16 @@ const patientApi = {
           name,
           gender,
           date_of_birth,
+          age,
           phone,
           email,
           address,
           medical_history,
           diagnosis,
           remarks,
+          primary_doctor_id,
+          discount_giver_id,
+          referrer_id,
           created_at
         `)
         .eq('id', id)

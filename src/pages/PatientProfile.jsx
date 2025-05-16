@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { format, parseISO, differenceInYears } from 'date-fns';
+import { format, parseISO, differenceInYears, isValid } from 'date-fns';
 import {
   FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt,
   FaIdCard, FaCalendarAlt, FaNotesMedical,
   FaArrowLeft, FaComments, FaClinicMedical,
   FaChevronLeft, FaChevronRight, FaClock,
-  FaMoneyBillWave, FaReceipt
+  FaMoneyBillWave, FaReceipt, FaUserMd,
+  FaHandHoldingUsd, FaUserShield
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import patientApi from '../api/patientApi';
 import invoiceApi from '../api/invoiceApi';
+import doctorApi from '../api/doctorApi';
 import { getPatientTherapyHistory, getAvailableTherapies } from '../api/dailyRecords';
+import { supabase } from '../lib/supabase';
 
 const PaymentModal = ({ invoice, onClose, onConfirm }) => {
   const [paymentAmount, setPaymentAmount] = useState(invoice.due_amount);
@@ -92,16 +95,30 @@ const PatientProfile = () => {
   const [isEditing, setIsEditing] = useState(false); // State for edit mode
   const [formData, setFormData] = useState({}); // State for form data during edit
   const [isSaving, setIsSaving] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [discountGivers, setDiscountGivers] = useState([]);
+  const [referrers, setReferrers] = useState([]);
 
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return 'N/A';
+  // Simple function to get age from date of birth - matching DailyRecords implementation
+  const getPatientAge = (dob) => {
+    if (!dob) return null;
     try {
-      const dob = parseISO(dateOfBirth);
-      const age = differenceInYears(new Date(), dob);
-      return age;
+      // First try ISO format
+      let birthDate = parseISO(dob);
+      
+      // If that fails, try direct Date constructor
+      if (isNaN(birthDate.getTime())) {
+        birthDate = new Date(dob);
+      }
+      
+      // If valid date now, calculate age
+      if (!isNaN(birthDate.getTime())) {
+        return differenceInYears(new Date(), birthDate);
+      }
+      return null;
     } catch (error) {
       console.error('Error calculating age:', error);
-      return 'N/A';
+      return null;
     }
   };
 
@@ -111,21 +128,45 @@ const PatientProfile = () => {
       setLoading(true);
       setError(null);
       const data = await patientApi.getPatientById(id);
-      console.log('Patient data fetched from API:', data); // Log the data received directly from the API
+      console.log('Patient data fetched from API:', data);
+      
       if (!data) {
         throw new Error('Patient not found');
       }
       
-      // CRITICAL FIX: Ensure diagnosis field exists even if API doesn't return it
-      const patientWithDiagnosis = {
+      // Process patient data to ensure all required fields exist
+      const processedPatient = {
         ...data,
-        diagnosis: data.diagnosis || '' // Force the diagnosis field to exist even if null/undefined
+        diagnosis: data.diagnosis || '', // Ensure diagnosis exists
       };
       
-      setPatient(patientWithDiagnosis);
-      setFormData({ 
-        ...patientWithDiagnosis, 
-        date_of_birth: data?.date_of_birth ? format(parseISO(data.date_of_birth), 'yyyy-MM-dd') : '' 
+      // Explicitly process age information
+      console.log('Processing age information');
+      console.log('Original age:', processedPatient.age);
+      console.log('Original DOB:', processedPatient.date_of_birth);
+      
+      // If age is not present or invalid, but date_of_birth is available, calculate age
+      if (processedPatient.date_of_birth) {
+        const calculatedAge = getPatientAge(processedPatient.date_of_birth);
+        console.log('Calculated age from DOB:', calculatedAge);
+        
+        // Only override age if it's not already valid
+        if (!processedPatient.age || processedPatient.age === '0' || processedPatient.age === 'N/A') {
+          if (calculatedAge !== null) {
+            processedPatient.age = calculatedAge.toString();
+            console.log('Setting calculated age:', processedPatient.age);
+          }
+        }
+      }
+      
+      // Log final processed patient
+      console.log('Final processed patient:', processedPatient);
+      
+      // Update state with processed patient data
+      setPatient(processedPatient);
+      setFormData({
+        ...processedPatient,
+        date_of_birth: processedPatient.date_of_birth ? format(parseISO(processedPatient.date_of_birth), 'yyyy-MM-dd') : ''
       });
       
       await Promise.all([
@@ -198,6 +239,61 @@ const PatientProfile = () => {
     }
   };
 
+  const loadDoctors = async () => {
+    try {
+      const data = await doctorApi.getDoctors();
+      setDoctors(data || []);
+    } catch (err) {
+      console.error('Error loading doctors:', err);
+    }
+  };
+
+  const loadDiscountGivers = async () => {
+    try {
+      const { data } = await supabase
+        .from('discount_givers')
+        .select('*')
+        .order('name');
+      setDiscountGivers(data || []);
+    } catch (err) {
+      console.error('Error loading discount givers:', err);
+    }
+  };
+
+  const loadReferrers = async () => {
+    try {
+      const { data } = await supabase
+        .from('referrers')
+        .select('*')
+        .order('name');
+      setReferrers(data || []);
+    } catch (err) {
+      console.error('Error loading referrers:', err);
+    }
+  };
+  
+  // Load all required data when the component mounts
+  useEffect(() => {
+    loadPatient();
+    loadDoctors();
+    loadDiscountGivers();
+    loadReferrers();
+  }, [id]);
+
+  // Debug effect to log relationship data when it changes
+  useEffect(() => {
+    if (patient && doctors.length && discountGivers.length && referrers.length) {
+      console.log('Patient has relationships:', { 
+        primary_doctor_id: patient.primary_doctor_id, 
+        discount_giver_id: patient.discount_giver_id, 
+        referrer_id: patient.referrer_id 
+      });
+      console.log('Doctor match:', doctors.find(d => d.id === patient.primary_doctor_id));
+      console.log('Discount Giver match:', discountGivers.find(d => d.id === patient.discount_giver_id));
+      console.log('Referrer match:', referrers.find(r => r.id === patient.referrer_id));
+    }
+  }, [patient, doctors, discountGivers, referrers]);
+
   const handleEditClick = () => {
     setFormData({ ...patient, date_of_birth: patient?.date_of_birth ? format(parseISO(patient.date_of_birth), 'yyyy-MM-dd') : '' }); // Initialize form data, format date
     setIsEditing(true);
@@ -231,7 +327,10 @@ const PatientProfile = () => {
         address: formData.address,
         medical_history: formData.medical_history,
         diagnosis: formData.diagnosis,
-        remarks: formData.remarks
+        remarks: formData.remarks,
+        primary_doctor_id: formData.primary_doctor_id || null,
+        discount_giver_id: formData.discount_giver_id || null,
+        referrer_id: formData.referrer_id || null
       });
 
       if (error) {
@@ -399,13 +498,38 @@ const PatientProfile = () => {
                 />
               ) : (
                 <dd className="text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
-                  {patient.date_of_birth ? (
-                    <>
-                      {format(parseISO(patient.date_of_birth), 'MMM dd, yyyy')} 
-                      <span className="text-gray-500 ml-2">({calculateAge(patient.date_of_birth)} yrs)</span>
-                    </>
-                  ) : (
-                    'N/A'
+                  {/* IMPORTANT: Using the EXACT same code as in DailyRecords.jsx for showing age */}
+                  {(() => {
+                    // Add debug logging to diagnose the issue
+                    console.log('Patient data in age display:', { 
+                      patientAge: patient?.age, 
+                      dob: patient?.date_of_birth,
+                      calculatedAge: patient?.date_of_birth ? getPatientAge(patient.date_of_birth) : null
+                    });
+                    
+                    // Use EXACTLY the same logic as DailyRecords.jsx
+                    const age = patient?.age && patient.age !== '0' && patient.age !== 'N/A' 
+                      ? `${patient.age} yrs`
+                      : patient?.date_of_birth 
+                        ? `${getPatientAge(patient.date_of_birth) || 'N/A'} yrs` 
+                        : 'N/A';
+                      
+                    console.log('Final age display:', age);
+                    return age;
+                  })()}
+                  
+                  {/* Show date of birth if available */}
+                  {patient?.date_of_birth && (
+                    <span className="text-gray-500 ml-2">
+                      (DoB: {(() => {
+                        try {
+                          return format(parseISO(patient.date_of_birth), 'MMM dd, yyyy');
+                        } catch (e) {
+                          console.error('Error formatting date:', e);
+                          return patient.date_of_birth;
+                        }
+                      })()})
+                    </span>
                   )}
                 </dd>
               )}
@@ -457,6 +581,90 @@ const PatientProfile = () => {
               ) : (
                 <dd className="text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
                   {patient.email || 'N/A'}
+                </dd>
+              )}
+            </div>
+
+            {/* Assigned Doctor Card - 3D Styled */}
+            <div className="bg-gradient-to-br from-white to-blue-50 p-5 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-blue-100 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-full -mt-8 -mr-8 opacity-50"></div>
+              <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg mr-3 shadow-sm">
+                  <FaUserMd className="text-blue-600" />
+                </div>
+                Assigned Doctor
+              </dt>
+              {isEditing ? (
+                <select
+                  name="primary_doctor_id"
+                  value={formData.primary_doctor_id || ''}
+                  onChange={handleInputChange}
+                  className="block w-full pl-3 pr-10 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
+                >
+                  <option value="">Select Doctor</option>
+                  {doctors.map(doctor => (
+                    <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <dd className="text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
+                  {doctors.find(d => d.id === patient.primary_doctor_id)?.name || 'N/A'}
+                </dd>
+              )}
+            </div>
+            
+            {/* Discount Giver Card - 3D Styled */}
+            <div className="bg-gradient-to-br from-white to-yellow-50 p-5 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-yellow-100 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-100 rounded-full -mt-8 -mr-8 opacity-50"></div>
+              <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                <div className="p-2 bg-yellow-100 rounded-lg mr-3 shadow-sm">
+                  <FaHandHoldingUsd className="text-yellow-600" />
+                </div>
+                Discount Giver
+              </dt>
+              {isEditing ? (
+                <select
+                  name="discount_giver_id"
+                  value={formData.discount_giver_id || ''}
+                  onChange={handleInputChange}
+                  className="block w-full pl-3 pr-10 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
+                >
+                  <option value="">Select Discount Giver</option>
+                  {discountGivers.map(discountGiver => (
+                    <option key={discountGiver.id} value={discountGiver.id}>{discountGiver.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <dd className="text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
+                  {discountGivers.find(d => d.id === patient.discount_giver_id)?.name || 'N/A'}
+                </dd>
+              )}
+            </div>
+            
+            {/* Referrer Card - 3D Styled */}
+            <div className="bg-gradient-to-br from-white to-indigo-50 p-5 rounded-xl shadow-lg transform transition-all duration-300 hover:shadow-xl border border-indigo-100 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-100 rounded-full -mt-8 -mr-8 opacity-50"></div>
+              <dt className="text-base font-semibold text-gray-700 flex items-center mb-3">
+                <div className="p-2 bg-indigo-100 rounded-lg mr-3 shadow-sm">
+                  <FaUserShield className="text-indigo-600" />
+                </div>
+                Referrer
+              </dt>
+              {isEditing ? (
+                <select
+                  name="referrer_id"
+                  value={formData.referrer_id || ''}
+                  onChange={handleInputChange}
+                  className="block w-full pl-3 pr-10 py-2 text-base bg-white/80 border-gray-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-inner"
+                >
+                  <option value="">Select Referrer</option>
+                  {referrers.map(referrer => (
+                    <option key={referrer.id} value={referrer.id}>{referrer.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <dd className="text-base font-semibold text-gray-900 bg-white/80 p-2 rounded-lg shadow-inner border border-gray-100">
+                  {referrers.find(r => r.id === patient.referrer_id)?.name || 'N/A'}
                 </dd>
               )}
             </div>
@@ -778,80 +986,6 @@ const PatientProfile = () => {
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Patient Profile Header */}
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden transform hover:scale-[1.01] transition-all duration-500 mb-6">
-        {/* Header with gradient background */}
-        <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-4 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-white/5 transform -skew-y-6"></div>
-          <div className="relative flex items-center space-x-3">
-            <div className="bg-white p-2 rounded-xl shadow-lg transform rotate-3 hover:rotate-0 transition-all duration-300">
-              <FaUser className="text-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-transparent bg-clip-text" />
-            </div>
-            <div>
-              {isEditing ? (
-                <input 
-                  type="text"
-                  name="name"
-                  value={formData.name || ''}
-                  onChange={handleInputChange}
-                  className="text-2xl font-bold text-white border-b-2 border-white/30 focus:outline-none focus:border-white bg-transparent"
-                  placeholder="Patient Name"
-                />
-              ) : (
-                <h1 className="text-2xl font-bold text-white">{patient.name}</h1>
-              )}
-              <p className="text-blue-100 flex items-center">
-                <FaIdCard className="mr-1.5" />
-                {patient.patient_id}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Content area with patient information */}
-        <div className="p-6">
-          {/* Edit/Save/Cancel Buttons */} 
-          <div className="flex justify-end mb-4">
-            {!isEditing ? (
-              <button
-                onClick={handleEditClick}
-                className="px-4 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-medium rounded-lg hover:from-blue-600 hover:to-indigo-600 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center"
-              >
-                <FaUser className="mr-2" /> Edit Profile
-              </button>
-            ) : (
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleSaveClick}
-                  disabled={loading || isSaving}
-                  className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaUser className="mr-2" /> Save Changes
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleCancelClick}
-                  disabled={loading || isSaving}
-                  className="px-4 py-1.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-sm font-medium rounded-lg hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-      
-
         </div>
       </div>
 

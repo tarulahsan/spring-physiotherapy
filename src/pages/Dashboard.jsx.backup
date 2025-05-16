@@ -1,0 +1,1555 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { format, parseISO, startOfToday, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
+  LineChart, Line
+} from 'recharts';
+import {
+  FaUsers, FaMoneyBillWave, FaHandHoldingUsd, FaPercentage,
+  FaUserCircle, FaCalendarAlt, FaArrowUp, FaArrowDown,
+  FaClock, FaReceipt, FaChartPie, FaChartLine,
+  FaChartBar, FaUserFriends, FaStethoscope, FaChevronLeft, FaChevronRight,
+  FaCalendarCheck, FaInfoCircle
+} from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import patientApi from '../api/patientApi';
+import invoiceApi from '../api/invoiceApi';
+import { getDailyRecords, getAllHistoricalRecords } from '../api/dailyRecords';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#FF69B4'];
+
+const TherapyDistributionAnalytics = ({ dailyTherapies, weeklyTherapies, monthlyTherapies, sixMonthTherapies, yearlyTherapies, allHistoricalTherapies }) => {
+  const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState('daily'); // 'daily', 'weekly', 'monthly', 'sixMonth', 'yearly', 'all'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('count'); // 'name', 'count'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
+  const [selectedTherapies, setSelectedTherapies] = useState([]);
+  const [allTherapies, setAllTherapies] = useState([]);
+  const [expandedTherapies, setExpandedTherapies] = useState({}); // Track which therapies have their patient lists expanded
+  const [therapyPatients, setTherapyPatients] = useState({}); // Store patient lists for each therapy
+  
+  // Combine all therapy data
+  useEffect(() => {
+    // Combine all therapies from different time periods into one master list for searching
+    const combinedTherapies = new Map();
+    
+    // Process each set of therapies
+    const processTherapies = (therapies, source) => {
+      if (!therapies) return;
+      
+
+      therapies.forEach(therapy => {
+        if (!therapy || !therapy.name) return; // Skip invalid therapies
+        
+        const key = therapy.name;
+        if (combinedTherapies.has(key)) {
+          // Update existing entry with higher count if found
+          const existing = combinedTherapies.get(key);
+          const updatedSources = existing.sources.includes(source) ? 
+            existing.sources : [...existing.sources, source];
+            
+          if (existing.count < therapy.count) {
+            combinedTherapies.set(key, { ...therapy, sources: updatedSources });
+          } else {
+            combinedTherapies.set(key, { 
+              ...existing, 
+              sources: updatedSources
+            });
+          }
+        } else {
+          // Add new entry
+          combinedTherapies.set(key, { ...therapy, sources: [source] });
+        }
+      });
+    };
+    
+    // Process all therapy data sets
+    processTherapies(dailyTherapies, 'daily');
+    processTherapies(weeklyTherapies, 'weekly');
+    processTherapies(monthlyTherapies, 'monthly');
+    
+    // Add sample data only if this is a development environment and no therapies exist
+    if (combinedTherapies.size === 0 && process.env.NODE_ENV === 'development') {
+      combinedTherapies.set('Focus Shock Wave Therapy For Erectile Dysfunction', {
+        name: 'Focus Shock Wave Therapy For Erectile Dysfunction',
+        count: 5,
+        sources: ['monthly']
+      });
+      combinedTherapies.set('Swedish Massage', {
+        name: 'Swedish Massage',
+        count: 10,
+        sources: ['daily', 'weekly', 'monthly']
+      });
+    }
+    
+    // Convert map to array and sort by name for the search dropdown
+    const therapyArray = Array.from(combinedTherapies.values()).sort((a, b) => a.name.localeCompare(b.name));
+    setAllTherapies(therapyArray);
+  }, [dailyTherapies, weeklyTherapies, monthlyTherapies]);
+  
+  // DEPRECATED: We now use real data passed as props instead of these simulated data
+  // Renamed to avoid conflicts with props
+  const simulatedSixMonthData = React.useMemo(() => {
+    if (!monthlyTherapies?.length) return [];
+    // This is no longer used, but we keep it for now in case we need a fallback
+    return monthlyTherapies.map(therapy => ({
+      name: therapy.name,
+      count: therapy.count * 6, // Simulate 6 months data
+      percentage: therapy.percentage
+    }));
+  }, [monthlyTherapies]);
+  
+  const simulatedYearlyData = React.useMemo(() => {
+    if (!monthlyTherapies?.length) return [];
+    // This is no longer used, but we keep it for now in case we need a fallback
+    return monthlyTherapies.map(therapy => ({
+      name: therapy.name,
+      count: therapy.count * 12, // Simulate yearly data
+      percentage: therapy.percentage
+    }));
+  }, [monthlyTherapies]);
+  
+  // Enhanced search function that handles multiple therapy search terms
+  const handleSearchChange = (e) => {
+    const newValue = e.target.value;
+    setSearchTerm(newValue);
+    
+    // If search is cleared, also clear selected therapies
+    if (!newValue.trim()) {
+      setSelectedTherapies([]);
+    }
+  };
+  
+  // Improved function to add a therapy to the selected list
+  const handleTherapySelect = (therapy) => {
+    setSelectedTherapies(prev => {
+      const isSelected = prev.some(t => t.name === therapy.name);
+      
+      if (isSelected) {
+        // Remove from selection
+        return prev.filter(t => t.name !== therapy.name);
+      } else {
+        // Add to selection
+        return [...prev, therapy];
+      }
+    });
+  };
+  
+  // Toggle patient list expansion
+  const togglePatientList = (therapyName, event) => {
+    // Stop propagation to prevent row selection
+    event.stopPropagation();
+    
+    setExpandedTherapies(prev => ({
+      ...prev,
+      [therapyName]: !prev[therapyName]
+    }));
+  };
+  
+  // Navigate to patient profile
+  const navigateToPatientProfile = (patientId, event) => {
+    event.stopPropagation();
+    navigate(`/patients/${patientId}`);
+  };
+  
+  // Function to clear all selected filters
+  const clearFilters = () => {
+    setSelectedTherapies([]);
+    setSearchTerm('');
+  };
+  
+  // Get the appropriate therapies based on selected time range
+  const getFilteredTherapies = () => {
+    let therapies = [];
+    
+    // Get base therapies according to time range
+    switch(timeRange) {
+      case 'daily':
+        therapies = dailyTherapies || [];
+        console.log('Daily therapies:', therapies.length);
+        break;
+      case 'weekly':
+        therapies = weeklyTherapies || [];
+        console.log('Weekly therapies:', therapies.length);
+        break;
+      case 'monthly':
+        therapies = monthlyTherapies || [];
+        console.log('Monthly therapies:', therapies.length);
+        break;
+      case 'sixMonth':
+        // Use the actual six-month data now which is passed as props
+        therapies = sixMonthTherapies || [];
+        console.log('Six-month therapies:', therapies.length);
+        break;
+      case 'yearly':
+        // Use the actual yearly data now which is passed as props
+        therapies = yearlyTherapies || [];
+        console.log('Yearly therapies:', therapies.length);
+        break;
+      case 'all':
+        // Use the historical data directly instead of combining other datasets
+        if (allHistoricalTherapies && allHistoricalTherapies.length > 0) {
+          therapies = allHistoricalTherapies;
+          console.log('Using all historical therapies:', therapies.length);
+          
+          // The data is being loaded correctly, but some therapies may not be present
+          // because they aren't linked to any patient records
+        } else {
+          // Fallback to old approach if no historical data available
+          console.log('No historical data available, falling back to combined approach');
+          const therapyMap = new Map();
+          
+          // Process each therapy data set and combine into a unified view
+          [dailyTherapies, weeklyTherapies, monthlyTherapies, sixMonthTherapies, yearlyTherapies]
+            .filter(dataset => Array.isArray(dataset) && dataset.length > 0)
+            .forEach(dataset => {
+              dataset.forEach(therapy => {
+                if (!therapy || !therapy.name) return;
+                
+                // Use the therapy name as the key
+                if (therapyMap.has(therapy.name)) {
+                  // Update with higher count if found
+                  const existing = therapyMap.get(therapy.name);
+                  if (existing.count < therapy.count) {
+                    therapyMap.set(therapy.name, therapy);
+                  }
+                } else {
+                  therapyMap.set(therapy.name, therapy);
+                }
+              });
+            });
+          
+          therapies = Array.from(therapyMap.values());
+          console.log('All combined therapies (fallback):', therapies.length);
+        }
+        break;
+      default:
+        therapies = dailyTherapies || [];
+    }
+    
+    // Filter by search term (supports multiple comma-separated terms)
+    if (searchTerm.trim()) {
+      const searchTerms = searchTerm.toLowerCase().split(',').map(term => term.trim());
+      
+      therapies = therapies.filter(therapy => 
+        // Match ANY of the search terms
+        searchTerms.some(term => therapy.name.toLowerCase().includes(term))
+      );
+    }
+    
+    // Filter by selected therapies if any are selected
+    if (selectedTherapies.length > 0) {
+      const selectedNames = selectedTherapies.map(t => t.name);
+      therapies = therapies.filter(therapy => selectedNames.includes(therapy.name));
+    }
+    
+    // Sort therapies
+    therapies.sort((a, b) => {
+      if (sortBy === 'name') {
+        return sortOrder === 'asc' 
+          ? a.name.localeCompare(b.name) 
+          : b.name.localeCompare(a.name);
+      } else { // sortBy === 'count'
+        return sortOrder === 'asc' 
+          ? a.count - b.count 
+          : b.count - a.count;
+      }
+    });
+    
+    return therapies;
+  };
+  
+  const filteredTherapies = getFilteredTherapies();
+  
+  // Enhanced search matching for the autocomplete dropdown
+  const getSearchMatches = () => {
+    if (!searchTerm.trim()) return [];
+    
+    // Get the last term being typed (after the last comma)
+    const currentTerm = searchTerm.split(',').pop().trim().toLowerCase();
+    if (!currentTerm) return [];
+    
+    // Find matches with improved prioritization
+    const matchingTherapies = allTherapies.filter(therapy => {
+      if (!therapy || !therapy.name) return false;
+      
+      // Convert to lowercase for case-insensitive search
+      const therapyName = therapy.name.toLowerCase();
+      
+      // Start-of-word match (higher priority) - will be sorted later
+      if (therapyName.startsWith(currentTerm)) return true;
+      
+      // Word boundary match (medium priority)
+      // e.g. searching for "tissue" would match "Deep Tissue Massage"
+      const words = therapyName.split(' ');
+      if (words.some(word => word.startsWith(currentTerm))) return true;
+      
+      // Contains match (lower priority)
+      return therapyName.includes(currentTerm);
+    });
+    
+    // Sort matches by relevance
+    matchingTherapies.sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      
+      // Check if either starts with the search term
+      const aStartsWith = nameA.startsWith(currentTerm);
+      const bStartsWith = nameB.startsWith(currentTerm);
+      
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      
+      // Check if any word starts with the search term
+      const aWordsStart = nameA.split(' ').some(word => word.startsWith(currentTerm));
+      const bWordsStart = nameB.split(' ').some(word => word.startsWith(currentTerm));
+      
+      if (aWordsStart && !bWordsStart) return -1;
+      if (!aWordsStart && bWordsStart) return 1;
+      
+      // Both are the same type of match, sort alphabetically
+      return nameA.localeCompare(nameB);
+    });
+    
+    return matchingTherapies.slice(0, 10); // Top 10 most relevant matches
+  };
+  
+  // Create some dummy therapy data if none exists (for testing)
+  useEffect(() => {
+    if (allTherapies.length === 0 && process.env.NODE_ENV === 'development') {
+      // Add dummy data for testing search only in development environment
+      const sampleTherapies = [
+        { name: 'Focus Shock Wave Therapy For Erectile Dysfunction', count: 5, sources: ['monthly'] },
+        { name: 'Swedish Massage', count: 10, sources: ['daily', 'weekly', 'monthly'] },
+        { name: 'Deep Tissue Massage', count: 8, sources: ['daily', 'weekly'] },
+        { name: 'Physiotherapy', count: 15, sources: ['daily', 'weekly', 'monthly'] },
+        { name: 'Acupuncture', count: 7, sources: ['weekly'] }
+      ];
+      setAllTherapies([...sampleTherapies]);
+      console.log('Added dummy therapy data for testing:', sampleTherapies);
+    }
+  }, [allTherapies.length]);
+  
+  const searchMatches = getSearchMatches();
+  
+  // Get total count of all therapies in current view
+  const totalCount = filteredTherapies.reduce((sum, therapy) => sum + therapy.count, 0);
+  
+  // Toggle sort order or change sort field
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc'); // Default to descending when changing fields
+    }
+  };
+  
+  // Get appropriate time range label
+  const getTimeRangeLabel = () => {
+    switch(timeRange) {
+      case 'daily': return "Today's";
+      case 'weekly': return "This Week's";
+      case 'monthly': return "This Month's";
+      case 'sixMonth': return "Last 6 Months'";
+      case 'yearly': return "This Year's";
+      case 'all': return "All Time";
+      default: return "All Time";
+    }
+  };
+  
+  // Add a search match to the search term
+  const addSearchMatch = (match) => {
+    // Extract all terms except the current one being typed
+    const terms = searchTerm.split(',');
+    terms.pop(); // Remove the current term being typed
+    
+    // Add the new match
+    const newSearchTerm = [...terms, match.name].filter(Boolean).join(', ');
+    setSearchTerm(newSearchTerm + (newSearchTerm ? ', ' : ''));
+  };
+  
+  return (
+    <div className="space-y-4">
+      {/* Filter Controls */}
+      <div className="flex flex-col space-y-3 sm:space-y-4 mb-4">
+        {/* Time Range Selector */}
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+          <div className="flex flex-wrap bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setTimeRange('all')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'all' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setTimeRange('daily')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'daily' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              Daily
+            </button>
+            <button
+              onClick={() => setTimeRange('weekly')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'weekly' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setTimeRange('monthly')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'monthly' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setTimeRange('sixMonth')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'sixMonth' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              6 Months
+            </button>
+            <button
+              onClick={() => setTimeRange('yearly')}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md flex-1 ${timeRange === 'yearly' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+        
+        {/* Search and Selected Therapies */}
+        <div className="flex flex-col space-y-2">
+          {/* Search Therapy with Autocomplete */}
+          <div className="w-full relative">
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Search Therapies
+                <span className="text-xs font-normal text-gray-500 ml-1">
+                  (separate multiple terms with commas)
+                </span>
+              </label>
+              
+              {/* Clear filters button */}
+              {(searchTerm || selectedTherapies.length > 0) && (
+                <button 
+                  onClick={clearFilters}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+            
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search therapies (e.g., Massage, Traction)..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Search Autocomplete Dropdown */}
+            {searchTerm && searchMatches.length > 0 && (
+              <div className="absolute z-10 top-full left-0 right-0 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">
+                {searchMatches.map((therapy) => (
+                  <div 
+                    key={therapy.name} 
+                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                    onClick={() => handleTherapySelect(therapy)}
+                  >
+                    <div className="font-medium">{therapy.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {therapy.count} sessions
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Selected Therapies Tags */}
+          {selectedTherapies.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center text-sm text-gray-600 mb-2">
+                <span className="font-medium">Active filters:</span>
+                <button 
+                  onClick={clearFilters}
+                  className="ml-auto text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedTherapies.map(therapy => (
+                  <div 
+                    key={therapy.name} 
+                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center shadow-sm"
+                  >
+                    <span>{therapy.name}</span>
+                    <button
+                      onClick={() => handleTherapySelect(therapy)}
+                      className="ml-2 text-blue-500 hover:text-blue-700 font-bold"
+                      aria-label={`Remove ${therapy.name} filter`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Results Data Table */}
+      <div className="overflow-auto">
+        <h3 className="text-lg font-bold text-gray-800 mb-2">
+          {getTimeRangeLabel()} Therapy Distribution
+          {filteredTherapies.length > 0 && (
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              ({filteredTherapies.length} {filteredTherapies.length === 1 ? 'therapy' : 'therapies'}, {totalCount} total sessions)
+            </span>
+          )}
+        </h3>
+        
+        {filteredTherapies.length === 0 ? (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-gray-500">
+              {searchTerm || selectedTherapies.length > 0 
+                ? 'No therapies match your search criteria' 
+                : 'No therapy data available for this time period'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-blue-50">
+                  <tr>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        Therapy Name
+                        {sortBy === 'name' && (
+                          <span className="ml-1">
+                            {sortOrder === 'asc' ? (
+                              <FaArrowUp className="text-blue-500" />
+                            ) : (
+                              <FaArrowDown className="text-blue-500" />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort('count')}
+                    >
+                      <div className="flex items-center">
+                        Sessions
+                        {sortBy === 'count' && (
+                          <span className="ml-1">
+                            {sortOrder === 'asc' ? (
+                              <FaArrowUp className="text-blue-500" />
+                            ) : (
+                              <FaArrowDown className="text-blue-500" />
+                            )}
+                        className={`hover:bg-blue-50 transition-colors duration-150 ${isSelected ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleTherapySelect(therapy)}
+                      >
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          <div className="flex items-center justify-between">
+                            <span>{therapy.name}</span>
+                            {hasPatients && (
+                              <button 
+                                onClick={(e) => togglePatientList(therapy.name, e)}
+                                className="ml-2 text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100"
+                                title={isExpanded ? "Hide patients" : "Show patients"}
+                              >
+                                {isExpanded ? 
+                                  <FaChevronUp className="text-xs" /> : 
+                                  <FaUserFriends className="text-xs" />}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                          {therapy.count}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+                              <div 
+                                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full" 
+                                style={{ width: `${therapy.percentage || 0}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-gray-700 font-medium">{therapy.percentage || 0}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      {/* Patient list row - shown when expanded */}
+                      {isExpanded && hasPatients && (
+                        <tr className="bg-gray-50">
+                          <td colSpan="3" className="px-6 py-3">
+                            <div className="p-2 rounded-lg">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                Patients who received {therapy.name}
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                {therapy.patients.map((patient) => (
+                                  <div 
+                                    key={patient.patientId} 
+                                    className="bg-white p-2 rounded-md shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                                    onClick={(e) => navigateToPatientProfile(patient.patientId, e)}
+                                  >
+                                    <div className="flex items-center">
+                                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                                        <FaUserCircle className="text-blue-500 w-4 h-4" />
+                                      </div>
+                                      <span className="font-medium text-gray-700 text-sm">
+                                        {patient.patientName}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Summary Section */}
+          <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+            <p className="flex items-center">
+              <FaInfoCircle className="mr-2 text-blue-500" />
+              Showing {filteredTherapies.length} {filteredTherapies.length === 1 ? 'therapy' : 'therapies'} for {getTimeRangeLabel().toLowerCase()} period.
+              {totalCount > 0 && (
+                <span className="ml-1">Total sessions: <span className="font-medium">{totalCount}</span></span>
+              )}
+            </p>
+          </div>
+        </>
+      )}
+            {/* Summary Section */}
+            <div className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+              <p className="flex items-center">
+                <FaInfoCircle className="mr-2 text-blue-500" />
+                Showing {filteredTherapies.length} {filteredTherapies.length === 1 ? 'therapy' : 'therapies'} for {getTimeRangeLabel().toLowerCase()} period.
+                {totalCount > 0 && (
+                  <span className="ml-1">Total sessions: <span className="font-medium">{totalCount}</span></span>
+                )}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const StatCard = ({ icon: Icon, title, value, subtitle, color, trend }) => (
+  <div className="p-4 bg-white rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105">
+    <div className="flex items-center justify-between mb-2">
+      <div>
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <p className={`text-xl font-bold ${color}`}>{value}</p>
+        {subtitle && (
+          <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+        )}
+      </div>
+      <div className={`p-3 rounded-full ${color.replace('text', 'bg').replace('-600', '-100')}`}>
+        <Icon className={`w-6 h-6 ${color}`} />
+      </div>
+    </div>
+    {trend && (
+      <div className="flex items-center mt-1">
+        {trend > 0 ? (
+          <FaArrowUp className="text-green-500 mr-1 w-3 h-3" />
+        ) : (
+          <FaArrowDown className="text-red-500 mr-1 w-3 h-3" />
+        )}
+        <span className={`text-xs ${trend > 0 ? "text-green-500" : "text-red-500"}`}>
+          {Math.abs(trend)}% from last month
+        </span>
+      </div>
+    )}
+  </div>
+);
+
+const AppointmentCard = ({ appointment }) => (
+  <div className="bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+          <FaUserCircle className="text-blue-500 w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="font-medium text-gray-900 text-sm">{appointment.patients?.name || 'Unknown Patient'}</h3>
+          <p className="text-xs text-gray-500">{appointment.therapy_types?.name || 'Unknown Therapy'}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-xs font-medium text-gray-900">{appointment.therapy_time || 'N/A'}</p>
+        <p className="text-xs text-gray-500">৳{appointment.therapy_types?.price || 0}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const RecentInvoiceCard = ({ invoice }) => {
+  // Handle potentially missing invoice data
+  if (!invoice) return null;
+  
+  const patientName = invoice.patient?.name || 'Unknown Patient';
+  const invoiceDate = invoice.invoice_date ? format(parseISO(invoice.invoice_date), 'MMM dd, yyyy') : 'No date';
+  const totalAmount = invoice.total_amount || 0;
+  const dueAmount = invoice.due_amount || 0;
+  
+  return (
+    <div className="bg-white p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+            <FaReceipt className="text-purple-500 w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-medium text-gray-900 text-sm">{patientName}</h3>
+            <p className="text-xs text-gray-500">{invoiceDate}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-medium text-gray-900">৳{totalAmount.toLocaleString()}</p>
+          <p className={`text-xs ${dueAmount > 0 ? 'text-red-500' : 'text-green-500'}`}>
+            {dueAmount > 0 
+              ? `Due: ৳${dueAmount.toLocaleString()}`
+              : 'Paid'
+            }
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100">
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {typeof entry.value === 'number' ? 
+              `৳${entry.value.toLocaleString()}` : 
+              entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const PaginationButton = ({ onClick, disabled, children }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`p-1 rounded ${
+      disabled
+        ? 'text-gray-400 cursor-not-allowed'
+        : 'text-purple-600 hover:bg-purple-50 active:bg-purple-100'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const Pagination = ({ currentPage, totalPages, onPageChange }) => (
+  <div className="flex items-center justify-center space-x-2 text-sm">
+    <PaginationButton
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage <= 1}
+    >
+      <FaChevronLeft className="w-4 h-4" />
+    </PaginationButton>
+    <span className="text-gray-600">
+      Page {currentPage} of {totalPages}
+    </span>
+    <PaginationButton
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage >= totalPages}
+    >
+      <FaChevronRight className="w-4 h-4" />
+    </PaginationButton>
+  </div>
+);
+
+const TopTherapyCard = ({ title, icon: Icon, therapies = [], color = 'blue' }) => {
+  // Safe color handling
+  const safeColor = ['blue', 'green', 'purple', 'red', 'yellow', 'indigo'].includes(color) ? color : 'blue';
+  
+  return (
+    <div className="bg-white p-4 rounded-xl shadow-lg">
+      <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+        <Icon className={`mr-2 text-${safeColor}-500`} />
+        {title || 'Therapy Data'}
+      </h2>
+      <div className="space-y-3">
+        {!therapies || therapies.length === 0 ? (
+          <p className="text-center text-gray-500 py-4">No therapies found</p>
+        ) : (
+          therapies.map((therapy, index) => (
+            <div 
+              key={`therapy-${index}`} 
+              className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`w-8 h-8 rounded-full bg-${safeColor}-100 flex items-center justify-center`}>
+                  <span className="text-sm font-semibold text-gray-700">#{index + 1}</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800">{therapy.name || 'Unknown Therapy'}</h3>
+                  <p className="text-xs text-gray-500">{therapy.count || 0} sessions</p>
+                </div>
+              </div>
+              <div className={`px-2 py-1 rounded-full bg-${safeColor}-100 text-${safeColor}-600 text-xs font-medium`}>
+                {therapy.percentage || 0}%
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalInvoices: 0,
+    totalRevenue: 0,
+    totalDue: 0
+  });
+  const [todayAppointments, setTodayAppointments] = useState([]);
+  const [allAppointments, setAllAppointments] = useState([]);
+  const [recentInvoices, setRecentInvoices] = useState([]);
+  const [allInvoices, setAllInvoices] = useState([]);
+  const [topDuePatients, setTopDuePatients] = useState([]);
+  const [revenueData, setRevenueData] = useState([]);
+  const [therapyDistribution, setTherapyDistribution] = useState([]);
+  const [topTherapies, setTopTherapies] = useState({
+    daily: [],
+    weekly: [],
+    monthly: []
+  });
+  
+  // Pagination states
+  const [appointmentPage, setAppointmentPage] = useState(1);
+  const [invoicePage, setInvoicePage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Track if the component is mounted to prevent state updates after unmount
+  const isMounted = React.useRef(true);
+  
+  useEffect(() => {
+    console.log('Dashboard component mounted - loading data...');
+    
+    // Set mounted ref to true
+    isMounted.current = true;
+    
+    // Only load data if the component is mounted
+    if (isMounted.current) {
+      loadDashboardData();
+    }
+    
+    // Set up a refresh interval to periodically reload dashboard data
+    const intervalId = setInterval(() => {
+      if (isMounted.current) {
+        console.log('Auto-refreshing dashboard data...');
+        loadDashboardData();
+      }
+    }, 300000); // Refresh every 5 minutes
+    
+    // Clean up interval on component unmount
+    return () => {
+      console.log('Dashboard component unmounting - cleaning up...');
+      isMounted.current = false;
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  const calculateTopTherapies = (records) => {
+    if (!records || records.length === 0) {
+      return [];
+    }
+    
+    // Debug: Check for records with Focus Shock Wave Therapy
+    const focusRecords = records.filter(record => 
+      record.therapy_types?.name?.toLowerCase().includes('focus shock') || 
+      record.therapy_types?.name?.toLowerCase().includes('erectile'));
+      
+    if (focusRecords.length > 0) {
+      console.log('FOUND Focus Shock Wave Therapy in input records:', focusRecords.length);
+      focusRecords.forEach(record => {
+        console.log('Focus therapy record:', {
+          therapy_name: record.therapy_types?.name,
+          therapy_date: record.therapy_date,
+          patient: record.patients?.name
+        });
+      });
+    } else {
+      console.log('Focus Shock Wave Therapy NOT FOUND in input records. Total records:', records.length);
+      // Sample the first few records to see what we have
+      const sampleRecords = records.slice(0, 5);
+      console.log('Sample records therapy types:', sampleRecords.map(r => r.therapy_types?.name));
+    }
+    
+    // Group records by therapy
+    const therapyGroups = {};
+    records.forEach(record => {
+      const therapyName = record.therapy_types?.name || 'Unknown Therapy';
+      if (!therapyGroups[therapyName]) {
+        therapyGroups[therapyName] = [];
+      }
+      
+      // Only add the record if we have patient data
+      if (record.patients && record.patients.id) {
+        therapyGroups[therapyName].push({
+          patientId: record.patients.id,
+          patientName: record.patients.name || 'Unknown Patient',
+          therapyDate: record.therapy_date,
+          therapyTime: record.therapy_time
+        });
+      }
+    });
+    
+    // Count therapy occurrences
+    const therapyCount = {};
+    Object.keys(therapyGroups).forEach(therapyName => {
+      // Count unique patients for each therapy
+      const uniquePatients = new Set();
+      therapyGroups[therapyName].forEach(record => {
+        uniquePatients.add(record.patientId);
+      });
+      therapyCount[therapyName] = therapyGroups[therapyName].length;
+    });
+
+    // Calculate total sessions
+    const totalSessions = Object.values(therapyCount).reduce((sum, count) => sum + count, 0);
+
+    // Convert to array and sort by count
+    // Return all therapies, not just top 5, for the comprehensive analytics view
+    return Object.entries(therapyCount)
+      .map(([name, count]) => {
+        // Get unique patients for this therapy
+        const patientRecords = therapyGroups[name] || [];
+        const uniquePatients = Array.from(
+          new Map(patientRecords.map(record => [record.patientId, record]))
+          .values()
+        ).sort((a, b) => a.patientName.localeCompare(b.patientName));
+        
+        return {
+          name,
+          count,
+          percentage: Math.round((count / totalSessions) * 100),
+          patients: uniquePatients
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const formattedToday = format(startOfToday(), 'yyyy-MM-dd');
+      console.log('Loading dashboard data for date:', formattedToday);
+
+      // Load patients with dues
+      console.log('Fetching patients data...');
+      let patients = [];
+      try {
+        patients = await patientApi.getPatients();
+        console.log('Patients data loaded successfully:', patients.length);
+      } catch (patientError) {
+        console.error('Failed to load patients:', patientError);
+        toast.error('Failed to load patients data');
+      }
+      
+      // Load invoices
+      console.log('Fetching invoices data...');
+      let invoices = [];
+      try {
+        const invoiceResponse = await invoiceApi.getInvoices();
+        invoices = invoiceResponse?.data || [];
+        console.log('Invoices data loaded successfully:', invoices.length);
+      } catch (invoiceError) {
+        console.error('Failed to load invoices:', invoiceError);
+        toast.error('Failed to load invoices data');
+      }
+      
+      // Load today's appointments
+      console.log('Fetching daily records for today:', formattedToday);
+      let appointments = [];
+      try {
+        appointments = await getDailyRecords(formattedToday);
+        console.log('Daily records loaded successfully:', appointments?.length);
+        console.log('Sample appointment data:', appointments?.[0] || 'No appointments');
+      } catch (appointmentError) {
+        console.error('Failed to load appointments:', appointmentError);
+        toast.error('Failed to load daily appointments');
+      }
+      
+      // Load ALL historical therapy records for the "All" view
+      console.log('Fetching ALL historical therapy records...');
+      let allHistoricalRecords = [];
+      try {
+        allHistoricalRecords = await getAllHistoricalRecords();
+        console.log('Historical records loaded successfully:', allHistoricalRecords?.length);
+      } catch (historicalError) {
+        console.error('Failed to load historical records:', historicalError);
+        toast.error('Failed to load historical therapy data');
+      }
+
+      // Load records for weekly and monthly calculations
+      const weekStart = format(startOfWeek(new Date()), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(new Date()), 'yyyy-MM-dd');
+      const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
+      // Calculate date ranges for all time periods
+      const currentDate = new Date();
+      const todayStr = format(currentDate, 'yyyy-MM-dd');
+      const weekStartDate = startOfWeek(currentDate);
+      const weekEndDate = endOfWeek(currentDate);
+      const monthStartDate = startOfMonth(currentDate);
+      const monthEndDate = endOfMonth(currentDate);
+      
+      // Calculate 6-month range (last 6 months)
+      const sixMonthStartDate = new Date(currentDate);
+      sixMonthStartDate.setMonth(currentDate.getMonth() - 6);
+      
+      // Calculate yearly range (last 12 months)
+      const yearStartDate = new Date(currentDate);
+      yearStartDate.setFullYear(currentDate.getFullYear() - 1);
+      
+      console.log('Date ranges calculated:', {
+        today: todayStr,
+        weekRange: `${format(weekStartDate, 'yyyy-MM-dd')} to ${format(weekEndDate, 'yyyy-MM-dd')}`,
+        monthRange: `${format(monthStartDate, 'yyyy-MM-dd')} to ${format(monthEndDate, 'yyyy-MM-dd')}`,
+        sixMonthRange: `${format(sixMonthStartDate, 'yyyy-MM-dd')} to ${format(currentDate, 'yyyy-MM-dd')}`,
+        yearRange: `${format(yearStartDate, 'yyyy-MM-dd')} to ${format(currentDate, 'yyyy-MM-dd')}`
+      });
+      
+      // Filter historical records for different time ranges
+      // Use the comprehensive allHistoricalRecords instead of just today's appointments
+      
+      // Daily records (today only)
+      const dailyRecords = allHistoricalRecords.filter(record => {
+        if (!record.therapy_date) return false;
+        return record.therapy_date === todayStr;
+      });
+      
+      // Weekly records (current week)
+      let weeklyRecords = [];
+      try {
+        weeklyRecords = allHistoricalRecords.filter(record => {
+          if (!record.therapy_date) return false;
+          
+          try {
+            const therapyDate = new Date(record.therapy_date);
+            return therapyDate >= weekStartDate && therapyDate <= weekEndDate;
+          } catch (dateError) {
+            console.error('Error comparing dates for weekly records:', dateError);
+            return false;
+          }
+        });
+        console.log(`Filtered ${weeklyRecords.length} weekly records`);
+      } catch (filterError) {
+        console.error('Error filtering weekly records:', filterError);
+        weeklyRecords = [];
+      }
+      
+      // Monthly records (current month)
+      let monthlyRecords = [];
+      try {
+        monthlyRecords = allHistoricalRecords.filter(record => {
+          if (!record.therapy_date) return false;
+          
+          try {
+            const therapyDate = new Date(record.therapy_date);
+            return therapyDate >= monthStartDate && therapyDate <= monthEndDate;
+          } catch (dateError) {
+            console.error('Error comparing dates for monthly records:', dateError);
+            return false;
+          }
+        });
+        console.log(`Filtered ${monthlyRecords.length} monthly records`);
+      } catch (filterError) {
+        console.error('Error filtering monthly records:', filterError);
+        monthlyRecords = [];
+      }
+      
+      // Six-month records (last 6 months)
+      let sixMonthRecords = [];
+      try {
+        sixMonthRecords = allHistoricalRecords.filter(record => {
+          if (!record.therapy_date) return false;
+          
+          try {
+            const therapyDate = new Date(record.therapy_date);
+            return therapyDate >= sixMonthStartDate && therapyDate <= currentDate;
+          } catch (dateError) {
+            console.error('Error comparing dates for six-month records:', dateError);
+            return false;
+          }
+        });
+        console.log(`Filtered ${sixMonthRecords.length} six-month records`);
+      } catch (filterError) {
+        console.error('Error filtering six-month records:', filterError);
+        sixMonthRecords = [];
+      }
+      
+      // Yearly records (last 12 months)
+      let yearlyRecords = [];
+      try {
+        yearlyRecords = allHistoricalRecords.filter(record => {
+          if (!record.therapy_date) return false;
+          
+          try {
+            const therapyDate = new Date(record.therapy_date);
+            return therapyDate >= yearStartDate && therapyDate <= currentDate;
+          } catch (dateError) {
+            console.error('Error comparing dates for yearly records:', dateError);
+            return false;
+          }
+        });
+        console.log(`Filtered ${yearlyRecords.length} yearly records`);
+      } catch (filterError) {
+        console.error('Error filtering yearly records:', filterError);
+        yearlyRecords = [];
+      }
+
+      // Calculate top therapies for each time range with better error handling
+      console.log(`Calculating therapies for: Daily (${dailyRecords?.length || 0}), Weekly (${weeklyRecords?.length || 0}), Monthly (${monthlyRecords?.length || 0}), Six-Monthly (${sixMonthRecords?.length || 0}), Yearly (${yearlyRecords?.length || 0}), All Historical (${allHistoricalRecords?.length || 0})`);
+      
+      let topDailyTherapies = [];
+      try {
+        topDailyTherapies = calculateTopTherapies(dailyRecords);
+        console.log('Top daily therapies calculated:', topDailyTherapies.length);
+      } catch (dailyError) {
+        console.error('Error calculating daily therapies:', dailyError);
+        topDailyTherapies = [];
+      }
+      
+      let topWeeklyTherapies = [];
+      try {
+        topWeeklyTherapies = calculateTopTherapies(weeklyRecords);
+        console.log('Top weekly therapies calculated:', topWeeklyTherapies.length);
+      } catch (weeklyError) {
+        console.error('Error calculating weekly therapies:', weeklyError);
+        topWeeklyTherapies = [];
+      }
+      
+      let topMonthlyTherapies = [];
+      try {
+        topMonthlyTherapies = calculateTopTherapies(monthlyRecords);
+        console.log('Top monthly therapies calculated:', topMonthlyTherapies.length);
+      } catch (monthlyError) {
+        console.error('Error calculating monthly therapies:', monthlyError);
+        topMonthlyTherapies = [];
+      }
+      
+      // Calculate top therapies for six month and yearly data
+      let topSixMonthTherapies = [];
+      try {
+        topSixMonthTherapies = calculateTopTherapies(sixMonthRecords);
+        console.log('Top six-month therapies calculated:', topSixMonthTherapies.length);
+      } catch (sixMonthError) {
+        console.error('Error calculating six-month therapies:', sixMonthError);
+        topSixMonthTherapies = [];
+      }
+      
+      let topYearlyTherapies = [];
+      try {
+        topYearlyTherapies = calculateTopTherapies(yearlyRecords);
+        console.log('Top yearly therapies calculated:', topYearlyTherapies.length);
+      } catch (yearlyError) {
+        console.error('Error calculating yearly therapies:', yearlyError);
+        topYearlyTherapies = [];
+      }
+      
+      // Calculate top therapies from ALL historical records
+      let topAllTherapies = [];
+      try {
+        topAllTherapies = calculateTopTherapies(allHistoricalRecords);
+        console.log('All historical therapies calculated:', topAllTherapies.length);
+      } catch (allError) {
+        console.error('Error calculating all historical therapies:', allError);
+        topAllTherapies = [];
+      }
+      
+      // Set top therapies state with all time periods
+      setTopTherapies({
+        daily: topDailyTherapies,
+        weekly: topWeeklyTherapies,
+        monthly: topMonthlyTherapies,
+        sixMonth: topSixMonthTherapies,
+        yearly: topYearlyTherapies,
+        all: topAllTherapies
+      });
+
+      // Calculate stats
+      const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.paid_amount || 0), 0) || 0;
+      const totalDue = invoices?.reduce((sum, inv) => sum + (inv.due_amount || 0), 0) || 0;
+
+      // Calculate top due patients with safe null handling
+      const patientDues = patients
+        .filter(patient => patient && typeof patient.total_due === 'number' && patient.total_due > 0)
+        .map(patient => ({
+          name: patient.name || 'Unknown Patient',
+          amount: patient.total_due || 0
+        }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+
+      // Generate revenue data for the last 7 days with safe date parsing
+      const last7DaysData = Array.from({ length: 7 }, (_, i) => {
+        const date = subDays(new Date(), i);
+        const formattedDate = format(date, 'yyyy-MM-dd');
+        const dayInvoices = invoices?.filter(inv => {
+          if (!inv.invoice_date) return false;
+          try {
+            return format(parseISO(inv.invoice_date), 'yyyy-MM-dd') === formattedDate;
+          } catch (e) {
+            console.error('Error parsing invoice date:', e);
+            return false;
+          }
+        }) || [];
+        
+        return {
+          date: format(date, 'MMM dd'),
+          revenue: dayInvoices.reduce((sum, inv) => sum + (inv.paid_amount || 0), 0),
+          due: dayInvoices.reduce((sum, inv) => sum + (inv.due_amount || 0), 0)
+        };
+      }).reverse();
+
+      // Calculate therapy distribution from today's appointments
+      const therapyCount = appointments?.reduce((acc, curr) => {
+        // Access therapy name using the nested structure
+        const therapyName = curr.therapy_types?.name || 'Unknown Therapy';
+        acc[therapyName] = (acc[therapyName] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      const therapyData = Object.entries(therapyCount).map(([name, value]) => ({
+        name,
+        value
+      }));
+
+      // Ensure all data is defined before setting stats
+      console.log('Setting dashboard statistics with values:', {
+        totalPatients: patients?.length || 0,
+        totalInvoices: invoices?.length || 0,
+        totalRevenue,
+        totalDue
+      });
+      
+      setStats({
+        totalPatients: patients?.length || 0,
+        totalInvoices: invoices?.length || 0,
+        totalRevenue: totalRevenue || 0,
+        totalDue: totalDue || 0
+      });
+
+      // Store all data and set initial page
+      setAllAppointments(appointments || []);
+      setAllInvoices(invoices || []);
+      setTodayAppointments(appointments?.slice(0, itemsPerPage) || []);
+      setRecentInvoices(invoices?.slice(0, itemsPerPage) || []);
+      setTopDuePatients(patientDues);
+      setRevenueData(last7DaysData);
+      setTherapyDistribution(therapyData);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data. Please try refreshing the page.');
+      
+      // Even with errors, set empty data to avoid undefined errors in components
+      setStats({
+        totalPatients: 0,
+        totalInvoices: 0, 
+        totalRevenue: 0,
+        totalDue: 0
+      });
+      setAllAppointments([]);
+      setAllInvoices([]);
+      setTodayAppointments([]);
+      setRecentInvoices([]);
+      setTopDuePatients([]);
+      setRevenueData([]);
+      setTherapyDistribution([]);
+      setTopTherapies({
+        daily: [],
+        weekly: [],
+        monthly: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle page changes
+  const handleAppointmentPageChange = (page) => {
+    const startIndex = (page - 1) * itemsPerPage;
+    setAppointmentPage(page);
+    setTodayAppointments(allAppointments.slice(startIndex, startIndex + itemsPerPage));
+  };
+
+  const handleInvoicePageChange = (page) => {
+    const startIndex = (page - 1) * itemsPerPage;
+    setInvoicePage(page);
+    setRecentInvoices(allInvoices.slice(startIndex, startIndex + itemsPerPage));
+  };
+
+  // Calculate total pages
+  const totalAppointmentPages = Math.ceil(allAppointments.length / itemsPerPage);
+  const totalInvoicePages = Math.ceil(allInvoices.length / itemsPerPage);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 px-4 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+          <FaStethoscope className="mr-2 text-blue-500" />
+          Dashboard
+        </h1>
+        
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <StatCard
+            icon={FaUsers}
+            title="Total Patients"
+            value={stats.totalPatients}
+            color="text-blue-600"
+          />
+          <StatCard
+            icon={FaHandHoldingUsd}
+            title="Total Invoices"
+            value={stats.totalInvoices}
+            color="text-green-600"
+          />
+          <StatCard
+            icon={FaMoneyBillWave}
+            title="Total Revenue"
+            value={`৳${stats.totalRevenue.toLocaleString()}`}
+            color="text-purple-600"
+          />
+          <StatCard
+            icon={FaPercentage}
+            title="Total Due"
+            value={`৳${stats.totalDue.toLocaleString()}`}
+            color="text-red-600"
+          />
+        </div>
+
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {/* Revenue Trend Chart */}
+          <div className="bg-white p-4 rounded-xl shadow-lg">
+            <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+              <FaChartLine className="mr-2 text-blue-500" />
+              Revenue Trend (Last 7 Days)
+            </h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stackId="1"
+                    stroke="#8884d8"
+                    fill="#8884d8"
+                    name="Revenue"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="due"
+                    stackId="1"
+                    stroke="#FF8042"
+                    fill="#FF8042"
+                    name="Due"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Top Due Patients */}
+          <div className="bg-white p-4 rounded-xl shadow-lg">
+            <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
+              <FaChartBar className="mr-2 text-purple-500" />
+              Top Due Patients
+            </h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topDuePatients}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="amount" name="Due Amount" fill="#8884d8">
+                    {topDuePatients.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Therapies Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <TopTherapyCard
+            title="Top Daily Therapies"
+            icon={FaCalendarAlt}
+            therapies={topTherapies.daily}
+            color="blue"
+          />
+          <TopTherapyCard
+            title="Top Weekly Therapies"
+            icon={FaCalendarCheck}
+            therapies={topTherapies.weekly}
+            color="purple"
+          />
+          <TopTherapyCard
+            title="Top Monthly Therapies"
+            icon={FaChartBar}
+            therapies={topTherapies.monthly}
+            color="green"
+          />
+        </div>
+
+        {/* Bottom Grid - 2-column layout for appointments and invoices */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          {/* Today's Appointments */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-gray-800 flex items-center">
+                <FaCalendarAlt className="mr-2 text-blue-500" />
+                Today's Appointments
+              </h2>
+              <span className="text-xs text-gray-500">
+                {format(new Date(), 'MMMM d, yyyy')}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {todayAppointments.length === 0 ? (
+                <p className="text-center text-gray-500 py-4 text-sm">No appointments for today</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {todayAppointments.map((appointment) => (
+                      <AppointmentCard key={appointment.id} appointment={appointment} />
+                    ))}
+                  </div>
+                  {allAppointments.length > itemsPerPage && (
+                    <div className="mt-4 pt-3 border-t">
+                      <Pagination
+                        currentPage={appointmentPage}
+                        totalPages={totalAppointmentPages}
+                        onPageChange={handleAppointmentPageChange}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Invoices */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold text-gray-800 flex items-center">
+                <FaReceipt className="mr-2 text-purple-500" />
+                Recent Invoices
+              </h2>
+              <button
+                onClick={() => navigate('/invoices')}
+                className="text-xs text-purple-600 hover:text-purple-700"
+              >
+                View all
+              </button>
+            </div>
+            <div className="space-y-2">
+              {recentInvoices.length === 0 ? (
+                <p className="text-center text-gray-500 py-4 text-sm">No recent invoices</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {recentInvoices.map((invoice) => (
+                      <RecentInvoiceCard key={invoice.id} invoice={invoice} />
+                    ))}
+                  </div>
+                  {allInvoices.length > itemsPerPage && (
+                    <div className="mt-4 pt-3 border-t">
+                      <Pagination
+                        currentPage={invoicePage}
+                        totalPages={totalInvoicePages}
+                        onPageChange={handleInvoicePageChange}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Therapy Distribution Analytics - Full Width Section */}
+        <div className="bg-white rounded-xl shadow-lg p-5 mb-4">
+          <h2 className="text-lg font-semibold mb-4 flex items-center">
+            <FaChartBar className="mr-2 text-blue-500" />
+            Therapy Distribution Analytics
+          </h2>
+          <TherapyDistributionAnalytics 
+            dailyTherapies={topTherapies.daily}
+            weeklyTherapies={topTherapies.weekly}
+            monthlyTherapies={topTherapies.monthly}
+            sixMonthTherapies={topTherapies.sixMonth}
+            yearlyTherapies={topTherapies.yearly}
+            allHistoricalTherapies={topTherapies.all} 
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

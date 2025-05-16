@@ -29,11 +29,12 @@ import patientApi from '../api/patientApi';
 import doctorApi from '../api/doctorApi';
 import therapyApi from '../api/therapyApi';
 import { settingsApi } from '../api/settingsApi';
-import { format } from 'date-fns';
+import { format, parseISO, differenceInYears } from 'date-fns';
 import { Card, CardBody, Checkbox, Select, Option, Dialog, DialogHeader, DialogBody, DialogFooter, Button } from "@material-tailwind/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { addDailyRecord, getDailyRecords, getAvailableTherapies, updateDailyRecord, deleteDailyRecord } from '../api/dailyRecords';
+import { supabase } from '../lib/supabase';
 
 const TherapyCard = ({ therapy, selected, onSelect, remainingDays }) => (
   <Card 
@@ -70,20 +71,60 @@ const TherapyCard = ({ therapy, selected, onSelect, remainingDays }) => (
   </Card>
 );
 
-const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
+const PatientRecordCard = ({ record, onEdit, onDelete, index, doctors, discountGivers, referrers }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Function to get gradient colors based on index
-  const getSerialStyles = (idx) => {
+  // Function to get background color based on index
+  const getSerialBackground = (idx) => {
     const colors = [
-      'from-blue-400 to-indigo-500',
-      'from-emerald-400 to-cyan-500',
-      'from-violet-400 to-purple-500',
-      'from-rose-400 to-pink-500',
-      'from-amber-400 to-orange-500'
+      '#3b82f6', // blue
+      '#10b981', // green
+      '#ef4444', // red
+      '#f97316', // orange
+      '#8b5cf6', // purple
+      '#06b6d4', // cyan
+      '#ec4899', // pink
+      '#eab308'  // yellow
     ];
     return colors[idx % colors.length];
   };
+
+  // Calculate age from date of birth if available
+  const getPatientAge = (dob) => {
+    if (!dob) return null;
+    try {
+      // First try ISO format
+      let birthDate = parseISO(dob);
+      
+      // If that fails, try direct Date constructor
+      if (isNaN(birthDate.getTime())) {
+        birthDate = new Date(dob);
+      }
+      
+      // If valid date now, calculate age
+      if (!isNaN(birthDate.getTime())) {
+        return differenceInYears(new Date(), birthDate);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error calculating age:', error);
+      return null;
+    }
+  };
+
+  // Get patient information
+  const patientName = record.patients?.name || 'Unknown Patient';
+  const patientId = record.patients?.patient_id || 'No ID';
+  const patientGender = record.patients?.gender || 'N/A';
+  
+  // Try getting age directly first, then fall back to calculating from DOB
+  const patientAge = record.patients?.age && record.patients.age !== '0' && record.patients.age !== 'N/A' 
+    ? `${record.patients.age} yrs`
+    : record.patients?.date_of_birth 
+      ? `${getPatientAge(record.patients.date_of_birth) || 'N/A'} yrs` 
+      : 'N/A';
+  
+  const therapyName = record.therapy_types?.name || 'Unknown Therapy';
 
   return (
     <>
@@ -103,10 +144,11 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 {/* Serial Number with Icon */}
                 <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex items-center">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getSerialStyles(index)} 
-                    flex items-center justify-center shadow-lg transform rotate-3`}
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transform rotate-3"
+                    style={{ backgroundColor: getSerialBackground(index) }}
                   >
-                    <span className="text-white font-bold text-lg transform -rotate-3">
+                    <span className="text-white font-bold text-lg transform -rotate-3" style={{ color: '#ffffff' }}>
                       {String(index + 1).padStart(2, '0')}
                     </span>
                   </div>
@@ -116,16 +158,45 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
                 <div className="flex-1 ml-8">
                   <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
                     <h3 className="text-lg font-semibold text-gray-800">
-                      {record.patients?.name || 'Unknown Patient'}
+                      {patientName}
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {record.patients?.patient_id || 'No ID'}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                        {record.therapy_types?.name || 'Unknown Therapy'}
+                        {patientId}
                       </span>
                     </div>
+                  </div>
+                  {/* Therapy Name - More Prominent and Centered */}
+                  <div className="mt-2 mb-1 text-center md:text-left">
+                    <div className="inline-block px-4 py-1.5 bg-gradient-to-r from-emerald-100 to-teal-200 text-gray-800 rounded-lg shadow-md">
+                      <span className="font-semibold text-base">{therapyName}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                    <div>
+                      <span className="font-medium">Age:</span> {patientAge}
+                    </div>
+                    <div>
+                      <span className="font-medium">Gender:</span> {patientGender}
+                    </div>
+                  </div>
+                  {/* Doctor, Discount Giver, Referrer information */}
+                  <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-500">
+                    {record.patients?.primary_doctor_id && (
+                      <div>
+                        <span className="font-medium">Doctor:</span> {doctors.find(d => d.id === record.patients.primary_doctor_id)?.name || 'N/A'}
+                      </div>
+                    )}
+                    {record.patients?.discount_giver_id && (
+                      <div>
+                        <span className="font-medium">Discount Giver:</span> {discountGivers.find(d => d.id === record.patients.discount_giver_id)?.name || 'N/A'}
+                      </div>
+                    )}
+                    {record.patients?.referrer_id && (
+                      <div>
+                        <span className="font-medium">Referrer:</span> {referrers.find(r => r.id === record.patients.referrer_id)?.name || 'N/A'}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -199,7 +270,14 @@ const PatientRecordCard = ({ record, onEdit, onDelete, index }) => {
 };
 
 const DailyRecords = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // Initialize with today's date using the correct timezone consideration
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    console.log('Initializing with today\'s date:', today);
+    console.log('Today ISO string:', today.toISOString());
+    console.log('Today formatted for display:', format(today, 'yyyy-MM-dd'));
+    return today;
+  });
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedTherapies, setSelectedTherapies] = useState([]);
   const [availableTherapies, setAvailableTherapies] = useState([]);
@@ -217,10 +295,39 @@ const DailyRecords = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 10;
 
+  // Log the current date for debugging
+  useEffect(() => {
+    console.log('Current date and time:', new Date());
+    console.log('Selected date value:', selectedDate);
+    console.log('Formatted selected date:', format(selectedDate, 'yyyy-MM-dd'));
+  }, []);
+
   useEffect(() => {
     loadDailyRecords();
     loadInitialData();
   }, [selectedDate]);
+  
+  // Function to load available therapies for the selected patient
+  const loadAvailableTherapies = async () => {
+    if (!selectedPatient?.id || !selectedDate) return;
+    
+    try {
+      setLoading(true);
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const therapies = await getAvailableTherapies(
+        selectedPatient.id,
+        formattedDate
+      );
+
+      setAvailableTherapies(Array.isArray(therapies) ? therapies : []);
+    } catch (error) {
+      console.error('Error loading available therapies:', error);
+      toast.error('Failed to load therapies');
+      setAvailableTherapies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async (value) => {
     try {
@@ -290,11 +397,45 @@ const DailyRecords = () => {
   const loadDailyRecords = async () => {
     try {
       setLoading(true);
-      const records = await getDailyRecords(selectedDate);
-      setDailyRecords(records);
+      
+      // Ensure we're using the correct date format and time zone handling
+      if (!selectedDate) {
+        console.error('Selected date is undefined or null');
+        toast.error('Invalid date selection');
+        setDailyRecords([]);
+        return;
+      }
+      
+      // Force correct date handling with explicit formatting
+      const dateToUse = new Date(selectedDate);
+      const formattedDateString = format(dateToUse, 'yyyy-MM-dd');
+      
+      console.log('Loading daily records with improved date handling:');
+      console.log(' - Original selected date:', selectedDate);
+      console.log(' - Date object to use:', dateToUse);
+      console.log(' - Formatted date string:', formattedDateString);
+      console.log(' - Current local time:', new Date().toLocaleString());
+      
+      try {
+        // Pass the formatted date string rather than the date object
+        const records = await getDailyRecords(formattedDateString);
+        console.log('Daily records loaded successfully:', records);
+        setDailyRecords(Array.isArray(records) ? records : []);
+        
+        if (!records || records.length === 0) {
+          console.log('No records found for date:', formattedDateString);
+        } else {
+          console.log('Sample record date:', records[0].therapy_date);
+        }
+      } catch (apiError) {
+        console.error('API error when loading records:', apiError);
+        toast.error(`Failed to load records: ${apiError.message || 'Unknown error'}`);
+        setDailyRecords([]);
+      }
     } catch (error) {
-      console.error('Error loading records:', error);
-      toast.error('Failed to load records');
+      console.error('Unexpected error in loadDailyRecords:', error);
+      toast.error('Failed to load records due to an unexpected error');
+      setDailyRecords([]);
     } finally {
       setLoading(false);
     }
@@ -340,12 +481,17 @@ const DailyRecords = () => {
 
     try {
       setLoading(true);
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Adding records with time:', {
-        therapyTime,
-        selectedTherapies,
-        formattedDate
-      });
+      
+      // Ensure consistent date handling with explicit formatting
+      const dateToUse = new Date(selectedDate);
+      const formattedDate = format(dateToUse, 'yyyy-MM-dd');
+      
+      console.log('Adding records with enhanced date handling:');
+      console.log(' - Original selected date:', selectedDate);
+      console.log(' - Date object to use:', dateToUse); 
+      console.log(' - Formatted date string for DB:', formattedDate);
+      console.log(' - Therapy time:', therapyTime);
+      console.log(' - Selected therapies:', selectedTherapies);
 
       // Add records for each selected therapy
       await Promise.all(
@@ -362,28 +508,8 @@ const DailyRecords = () => {
       toast.success('Records added successfully');
       setSelectedTherapies([]);
       setTherapyTime('');
-      
-      // Reload both daily records and available therapies to refresh the UI
-      try {
-        await loadDailyRecords();
-        
-        // Reload available therapies for this patient
-        if (selectedPatient?.id && selectedDate) {
-          const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-          const therapies = await getAvailableTherapies(
-            selectedPatient.id, 
-            formattedDate
-          );
-          setAvailableTherapies(Array.isArray(therapies) ? therapies : []);
-        }
-      } catch (error) {
-        // Handle potential session errors during reload
-        if (error.message && error.message.includes('not authenticated')) {
-          toast.error('Session expired. Please refresh the page to log in again.');
-        } else {
-          console.error('Error refreshing data:', error);
-        }
-      }
+      loadDailyRecords();
+      loadAvailableTherapies(); // Reload available therapies to update remaining days
     } catch (error) {
       console.error('Error adding records:', error);
       toast.error('Failed to add records');
@@ -392,24 +518,75 @@ const DailyRecords = () => {
     }
   };
 
+  // Function to format time to HH:MM:SS for database storage
+  const formatTimeForDB = (timeString) => {
+    if (!timeString) return null;
+    
+    // If already in HH:MM:SS format
+    if (timeString.match(/^\d{2}:\d{2}:\d{2}$/)) {
+      return timeString;
+    }
+    
+    // If in HH:MM format
+    if (timeString.match(/^\d{2}:\d{2}$/)) {
+      return `${timeString}:00`;
+    }
+    
+    // Invalid format
+    throw new Error(`Invalid time format: ${timeString}. Expected HH:MM or HH:MM:SS`);
+  };
+  
+  // This is a super-simplified approach focusing on the core issue
   const handleTimeUpdate = async (record) => {
     try {
-      setLoading(true);
-      const formattedTime = therapyTime.length === 5 ? `${therapyTime}:00` : therapyTime;
-      
-      await updateDailyRecord(record.id, {
-        therapy_time: formattedTime
-      });
-      
+      // Close modal immediately
       setShowEditModal(false);
+      setLoading(true);
+      
+      console.log(`Updating therapy time for record ${record.id}:`);
+      console.log(`Current time: ${record.therapy_time} → New time: ${therapyTime}`);
+      
+      // Validate
+      if (!therapyTime || !record?.id) {
+        throw new Error('Invalid time or record');
+      }
+      
+      // Format time properly
+      let formattedTime = therapyTime;
+      if (therapyTime.length === 5 && therapyTime.includes(':')) {
+        formattedTime = `${therapyTime}:00`;
+      }
+      
+      // First-try approach: Simple direct update with database reload
+      await supabase
+        .from('daily_therapy_records')
+        .update({
+          therapy_time: formattedTime,
+          // These two fields ensure the database sees this as a true change
+          updated_at: new Date().toISOString(),
+          update_id: `update-${Date.now()}`
+        })
+        .eq('id', record.id);
+      
+      // Clean up UI state
       setEditingRecord(null);
       setTherapyTime('');
       
-      toast.success('Time updated successfully');
+      // Force database reload - CRITICAL STEP
+      // We must reload everything from the database to see updates
+      await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay 
       await loadDailyRecords();
+        
+      toast.success('Therapy time updated successfully!');
+      
+      // Force page re-render to ensure UI reflects updates
+      setTimeout(() => {
+        // This is just to trigger a re-render
+        setSelectedDate(prev => new Date(prev.getTime()));
+      }, 1000);
     } catch (error) {
       console.error('Error updating time:', error);
-      toast.error('Failed to update time');
+      toast.error('Failed to update therapy time');
     } finally {
       setLoading(false);
     }
@@ -431,12 +608,31 @@ const DailyRecords = () => {
   const handleDelete = async (record) => {
     try {
       setLoading(true);
+      console.log('Deleting record with ID:', record.id);
       await deleteDailyRecord(record.id);
       toast.success('Record deleted successfully');
-      await loadDailyRecords();
+      
+      // Refresh the data
+      setTimeout(async () => {
+        await loadDailyRecords();
+        
+        // Also refresh available therapies if a patient is selected
+        if (selectedPatient?.id && selectedDate) {
+          const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+          try {
+            const therapies = await getAvailableTherapies(
+              selectedPatient.id,
+              formattedDate
+            );
+            setAvailableTherapies(Array.isArray(therapies) ? therapies : []);
+          } catch (refreshError) {
+            console.error('Error refreshing therapies after delete:', refreshError);
+          }
+        }
+      }, 500); // Small delay to ensure database operation completes
     } catch (error) {
       console.error('Error deleting record:', error);
-      toast.error('Failed to delete record');
+      toast.error('Failed to delete record: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -795,6 +991,9 @@ const DailyRecords = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 index={index}
+                doctors={doctors}
+                discountGivers={discountGivers}
+                referrers={referrers}
               />
             </div>
           ))}

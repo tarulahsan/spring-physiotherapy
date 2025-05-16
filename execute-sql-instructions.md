@@ -1,0 +1,50 @@
+# Execute Updated SQL Function
+
+Please follow these steps to update the SQL function in your Supabase database:
+
+1. **Open your Supabase dashboard**
+2. **Navigate to the SQL Editor**
+3. **Copy and paste the following SQL code**:
+
+```sql
+-- This function directly updates a therapy time with proper type handling
+-- It uses explicit type casting to ensure PostgreSQL treats the time correctly
+CREATE OR REPLACE FUNCTION update_therapy_time_raw(p_record_id uuid, p_time text)
+RETURNS json AS $$
+DECLARE
+  result json;
+BEGIN
+  -- Update the record with properly typed TIME value
+  UPDATE daily_therapy_records
+  SET 
+    therapy_time = p_time::time,
+    updated_at = now()
+  WHERE id = p_record_id;
+  
+  -- Return the updated record for verification
+  SELECT json_build_object(
+    'success', true,
+    'record_id', p_record_id,
+    'updated_time', p_time
+  ) INTO result;
+  
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create update_id column if it doesn't exist (to force updates)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT FROM information_schema.columns 
+    WHERE table_name = 'daily_therapy_records' AND column_name = 'update_id'
+  ) THEN
+    ALTER TABLE daily_therapy_records ADD COLUMN update_id text;
+  END IF;
+END $$;
+```
+
+4. **Execute the SQL query**
+5. **Restart your development server** (if it's currently running)
+
+This updated function correctly handles UUID primary keys instead of bigint, which should fix the error you're seeing.
